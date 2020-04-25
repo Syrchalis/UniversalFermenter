@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+<!-- Removes normal fermenting barrel, because it has no use over the universal fermenting barrel -->
+	<Operation Class="PatchOperationRemove">
+	  <xpath>*/ThingDef[defName = "FermentingBarrel"]/designationCategory</xpath>
+	</Operation>
+
+	<Operation Class="PatchOperationSequence">
+		<success>Always</success> 
+		<operations>
+			<li Class="PatchOperationTest">
+				<xpath>/Defs/ThingDef[defName="UniversalFermenter"]</xpath>
+			</li>
+		
+			<li Class="PatchOperationRemove">
+				<xpath>/Defs/ThingDef[defName="UniversalFermenter"]/costList/WoodLog</xpath>
+			</li>
+			
+			<li Class="PatchOperationRemove">
+				<xpath>/Defs/ThingDef[defName="UniversalFermenter"]/constructEffect</xpath>
+			</li>
+			
+			<li Class="PatchOperationAdd">
+				<xpath>/Defs/ThingDef[defName="UniversalFermenter"]</xpath>
+				<value>
+					<costStuffCount>30</costStuffCount>
+					<stuffCategories>
+						<li>Woody</li>
+					</stuffCategories>
+				</value>
+			</li>
+		</operations>
+  </Operation>
+
+</Patch>
