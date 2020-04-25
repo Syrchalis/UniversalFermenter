@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+    <name>[SYR] Universal Fermenter</name>
+    <author>Syrchalis</author>
+    <supportedVersions>
+		<li>1.1</li>
+	</supportedVersions>
+	<packageId>syrchalis.universalfermenter</packageId>
+    <description>Adds a universal fermenter that supports multiple types of fermenting options. Optimized version with smarter workgivers, jobs and gizmos. Edited by Dubwise and me.</description>
+</ModMetaData>
