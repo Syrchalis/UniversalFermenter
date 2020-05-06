@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 //using System.Linq; // Used for texture loading in GetIcon()
 
@@ -26,32 +27,40 @@ namespace UniversalProcessors
         {
             base.PostSpawnSetup(respawningAfterLoad);
             comps.Add(this);
-            if (productGizmos.EnumerableNullOrEmpty() || productGizmos.Count != Props.products.Count)
+        }
+
+        public override IEnumerable<Gizmo> CompGetGizmosExtra()
+        {
+            // Add a dev button for finishing the fermenting			
+            if (Prefs.DevMode && !Empty)
             {
-                foreach (UniversalFermenterProduct product in Props.products)
-                {
-                    productGizmos.Add(product, new Command_Action
-                    {
-                        defaultLabel = product.thingDef.label,
-                        defaultDesc = "UF_NextDesc".Translate(product.thingDef.label, SummaryNextIngredientFilter),
-                        activateSound = SoundDef.Named("Click"),
-                        icon = Utils.GetIcon(product.thingDef),
-                        action = () =>
-                        {
-                            NextResource();
-                        },
-                    });
-                }
+                yield return UniversalFermenter_Utility.DevFinish;
+            }
+
+            // Dev button for printing speed factors (speed factors: sun, rain, snow, wind, roofed)
+            if (Prefs.DevMode)
+            {
+                yield return UniversalFermenter_Utility.DispSpeeds;
+            }
+            // Default buttons
+            foreach (Gizmo c in base.CompGetGizmosExtra())
+            {
+                yield return c;
+            }
+            // Switching products button (no button if only 1 resource)
+            if (ResourceListSize > 1)
+            {
+                yield return UniversalFermenter_Utility.productGizmos[Product];
             }
         }
-        public Dictionary<UniversalFermenterProduct, Command_Action> productGizmos = new Dictionary<UniversalFermenterProduct, Command_Action>();
 
         private int ingredientCount;
         private float progressInt;
         private Material barFilledCachedMat;
-        private int nextResourceInd;
-        private int currentResourceInd;
+        public int nextResourceInd;
+        public int currentResourceInd;
         private List<string> ingredientLabels = new List<string>();
+        public List<ThingDef> fermenterIngredients = new List<ThingDef>();
 
         protected float ruinedPercent;
 
@@ -69,7 +78,7 @@ namespace UniversalProcessors
             get { return (CompProperties_UniversalFermenter)props; }
         }
 
-        private int ResourceListSize
+        public int ResourceListSize
         {
             get
             {
@@ -173,7 +182,7 @@ namespace UniversalProcessors
             }
         }
 
-        private bool Empty
+        public bool Empty
         {
             get
             {
@@ -451,8 +460,17 @@ namespace UniversalProcessors
                     rotation = Rot4.North
                 });
             }
+            if (Product != null)
+            {
+                Vector3 drawPos = parent.DrawPos;
+                drawPos.y += 0.02f;
+                drawPos.z += 0.05f;
+                Matrix4x4 matrix = default(Matrix4x4);
+                matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(0.75f, 1f, 0.75f));
+                Graphics.DrawMesh(MeshPool.plane10, matrix, UniversalFermenter_Utility.productMaterials[Product], 0);
+            }
         }
-
+        
         public bool AddIngredient(Thing ingredient)
         {
             if (!Product.ingredientFilter.Allows(ingredient))
@@ -460,7 +478,14 @@ namespace UniversalProcessors
                 return false;
             }
             if (!ingredientLabels.Contains(ingredient.def.label))
+            {
                 ingredientLabels.Add(ingredient.def.label);
+            }
+            CompIngredients comp = ingredient.TryGetComp<CompIngredients>();
+            if (comp != null)
+            {
+                fermenterIngredients.AddRange(comp.ingredients);
+            }
             AddIngredient(ingredient.stackCount);
             ingredient.Destroy(DestroyMode.Vanish);
             return true;
@@ -495,6 +520,12 @@ namespace UniversalProcessors
                 return null;
             }
             Thing thing = ThingMaker.MakeThing(Product.thingDef, null);
+            CompIngredients comp = thing.TryGetComp<CompIngredients>();
+            if (comp != null && !fermenterIngredients.NullOrEmpty())
+            {
+                comp.ingredients.AddRange(fermenterIngredients);
+                fermenterIngredients.Clear();
+            }
             thing.stackCount = Mathf.RoundToInt(ingredientCount * Product.efficiency);
             Reset();
             return thing;
@@ -574,67 +605,18 @@ namespace UniversalProcessors
             float t = (float)count / (float)(parent.stackCount + count);
             CompUniversalFermenter comp = ((ThingWithComps)otherStack).GetComp<CompUniversalFermenter>();
             ruinedPercent = Mathf.Lerp(ruinedPercent, comp.ruinedPercent, t);
-            //ruinedPercent = Mathf.Lerp(ruinedPercent, ruinedPercent, t);
         }
 
         public override bool AllowStackWith(Thing other)
         {
             CompUniversalFermenter comp = ((ThingWithComps)other).GetComp<CompUniversalFermenter>();
             return Ruined == comp.Ruined;
-            //return Ruined == Ruined;
         }
 
         public override void PostSplitOff(Thing piece)
         {
             CompUniversalFermenter comp = ((ThingWithComps)piece).GetComp<CompUniversalFermenter>();
             comp.ruinedPercent = ruinedPercent;
-            //ruinedPercent = ruinedPercent;
-        }
-
-        public override IEnumerable<Gizmo> CompGetGizmosExtra()
-        {
-            // Add a dev button for finishing the fermenting			
-            if (Prefs.DevMode && !Empty)
-            {
-                Command_Action DevFinish = new Command_Action()
-                {
-                    defaultLabel = "DEBUG: Finish",
-                    activateSound = SoundDef.Named("Click"),
-                    action = () => { Progress = 1f; },
-                };
-                yield return DevFinish;
-            }
-
-            // Dev button for printing speed factors (speed factors: sun, rain, snow, wind, roofed)
-            if (Prefs.DevMode)
-            {
-                string line = parent.ToString() + ": " +
-                              "sun: " + SunRespectSpeedFactor.ToString("0.00") +
-                              ", rain: " + RainRespectSpeedFactor.ToString("0.00") +
-                              ", snow: " + SnowRespectSpeedFactor.ToString("0.00") +
-                              ", wind: " + WindRespectSpeedFactor.ToString("0.00") +
-                              ", roofed: " + RoofedFactor.ToString("0.00");
-                Command_Action DispSpeeds = new Command_Action()
-                {
-                    defaultLabel = "DEBUG: Display Speed Factors",
-                    defaultDesc = "Display the current sun, rain, snow and wind speed factors and how much of the building is covered by roof.",
-                    activateSound = SoundDef.Named("Click"),
-                    action = () => { Log.Message(line); }
-                };
-                yield return DispSpeeds;
-            }
-
-            // Default buttons
-            foreach (Gizmo c in base.CompGetGizmosExtra())
-            {
-                yield return c;
-            }
-
-            // Switching products button (no button if only 1 resource)
-            if (ResourceListSize > 1 && productGizmos[Product] != null)
-            {
-                yield return productGizmos[Product];
-            }
         }
 
         // Inspector string eats max. 5 lines - there is room for one more
