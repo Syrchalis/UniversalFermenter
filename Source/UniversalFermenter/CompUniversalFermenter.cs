@@ -8,7 +8,7 @@ using UnityEngine;
 using RimWorld;
 using Verse;
 
-namespace UniversalProcessors
+namespace UniversalFermenter
 {
     public class CompUniversalFermenter : ThingComp
     {
@@ -30,13 +30,13 @@ namespace UniversalProcessors
             // Add a dev button for finishing the fermenting			
             if (Prefs.DevMode && !Empty)
             {
-                yield return UniversalFermenter_Utility.DevFinish;
+                yield return UF_Utility.DevFinish;
             }
 
             // Dev button for printing speed factors (speed factors: sun, rain, snow, wind, roofed)
             if (Prefs.DevMode)
             {
-                yield return UniversalFermenter_Utility.DispSpeeds;
+                yield return UF_Utility.DispSpeeds;
             }
             // Default buttons
             foreach (Gizmo c in base.CompGetGizmosExtra())
@@ -44,9 +44,9 @@ namespace UniversalProcessors
                 yield return c;
             }
             // Switching products button (no button if only 1 resource)
-            if (ResourceListSize > 1)
+            if (ProcessListSize > 1)
             {
-                yield return UniversalFermenter_Utility.productGizmos[Product];
+                yield return UF_Utility.productGizmos[CurrentProcess];
             }
         }
 
@@ -65,8 +65,6 @@ namespace UniversalProcessors
         public CompPowerTrader powerTradeComp;
         public CompFlickable flickComp;
 
-        public const string RuinedSignal = "RuinedByTemperature";
-
         // Properties
 
         public CompProperties_UniversalFermenter Props
@@ -74,27 +72,27 @@ namespace UniversalProcessors
             get { return (CompProperties_UniversalFermenter)props; }
         }
 
-        public int ResourceListSize
+        public int ProcessListSize
         {
             get
             {
-                return Props.products.Count;
+                return Props.processes.Count;
             }
         }
 
-        public UniversalFermenterProduct Product
+        public UF_Process CurrentProcess
         {
             get
             {
-                return Props.products[currentResourceInd];
+                return Props.processes[currentResourceInd];
             }
         }
 
-        public UniversalFermenterProduct NextProduct
+        public UF_Process NextProcess
         {
             get
             {
-                return Props.products[nextResourceInd];
+                return Props.processes[nextResourceInd];
             }
         }
 
@@ -122,9 +120,9 @@ namespace UniversalProcessors
                         summary += ", " + ingredientLabels[i];
                 }
 
-                substractLength = ("Contains " + Product.maxCapacity.ToString() + "/" + Product.maxCapacity.ToString() + " ").Length;
+                substractLength = ("Contains " + CurrentProcess.maxCapacity.ToString() + "/" + CurrentProcess.maxCapacity.ToString() + " ").Length;
                 maxSummaryLength = lineLength - substractLength;
-                return UniversalFermenter_Utility.VowelTrim(summary, maxSummaryLength);
+                return UF_Utility.VowelTrim(summary, maxSummaryLength);
             }
         }
 
@@ -132,7 +130,7 @@ namespace UniversalProcessors
         {
             get
             {
-                return UniversalFermenter_Utility.IngredientFilterSummary(NextProduct.ingredientFilter);
+                return UF_Utility.IngredientFilterSummary(NextProcess.ingredientFilter);
             }
         }
 
@@ -189,14 +187,14 @@ namespace UniversalProcessors
                 {
                     return 0;
                 }
-                return Product.maxCapacity - ingredientCount;
+                return CurrentProcess.maxCapacity - ingredientCount;
             }
         }
 
         private void NextResource()
         {
             nextResourceInd++;
-            if (nextResourceInd >= ResourceListSize)
+            if (nextResourceInd >= ProcessListSize)
                 nextResourceInd = 0;
             if (Empty)
             {
@@ -206,35 +204,39 @@ namespace UniversalProcessors
 
 
 
-        private float CurrentTempProgressSpeedFactor
+        private float CurrentTemperatureFactor
         {
             get
             {
+                if (!CurrentProcess.usesTemperature)
+                {
+                    return 1f;
+                }
                 float ambientTemperature = parent.AmbientTemperature;
                 // Temperature out of a safe range
-                if (ambientTemperature < Product.temperatureSafe.min)
+                if (ambientTemperature < CurrentProcess.temperatureSafe.min)
                 {
-                    return Product.speedLessThanSafe;
+                    return CurrentProcess.speedBelowSafe;
                 }
-                else if (ambientTemperature > Product.temperatureSafe.max)
+                else if (ambientTemperature > CurrentProcess.temperatureSafe.max)
                 {
-                    return Product.speedMoreThanSafe;
+                    return CurrentProcess.speedAboveSafe;
                 }
                 // Temperature out of an ideal range but still within a safe range
-                if (ambientTemperature < Product.temperatureIdeal.min)
+                if (ambientTemperature < CurrentProcess.temperatureIdeal.min)
                 {
-                    return GenMath.LerpDouble(Product.temperatureSafe.min, Product.temperatureIdeal.min, Product.speedLessThanSafe, 1f, ambientTemperature);
+                    return GenMath.LerpDouble(CurrentProcess.temperatureSafe.min, CurrentProcess.temperatureIdeal.min, CurrentProcess.speedBelowSafe, 1f, ambientTemperature);
                 }
-                else if (ambientTemperature > Product.temperatureIdeal.max)
+                else if (ambientTemperature > CurrentProcess.temperatureIdeal.max)
                 {
-                    return GenMath.LerpDouble(Product.temperatureIdeal.max, Product.temperatureSafe.max, 1f, Product.speedMoreThanSafe, ambientTemperature);
+                    return GenMath.LerpDouble(CurrentProcess.temperatureIdeal.max, CurrentProcess.temperatureSafe.max, 1f, CurrentProcess.speedAboveSafe, ambientTemperature);
                 }
                 // Temperature within an ideal range
                 return 1f;
             }
         }
 
-        public float SunRespectSpeedFactor
+        public float CurrentSunFactor
         {
             get
             {
@@ -242,18 +244,18 @@ namespace UniversalProcessors
                 {
                     return 0f;
                 }
-                if (Product.sunRespect.Span == 0)
+                if (CurrentProcess.sunFactor.Span == 0)
                 {
                     return 1f;
                 }
-                float skyGlow = parent.Map.skyManager.CurSkyGlow * (1 - RoofedFactor);
+                float skyGlow = parent.Map.skyManager.CurSkyGlow * (1 - RoofCoverage);
                 return GenMath.LerpDouble(Static_Weather.SunGlowRange.TrueMin, Static_Weather.SunGlowRange.TrueMax,
-                                          Product.sunRespect.min, Product.sunRespect.max,
+                                          CurrentProcess.sunFactor.min, CurrentProcess.sunFactor.max,
                                           skyGlow);
             }
         }
 
-        public float RainRespectSpeedFactor
+        public float CurrentRainFactor
         {
             get
             {
@@ -261,7 +263,7 @@ namespace UniversalProcessors
                 {
                     return 0f;
                 }
-                if (Product.rainRespect.Span == 0)
+                if (CurrentProcess.rainFactor.Span == 0)
                 {
                     return 1f;
                 }
@@ -269,16 +271,16 @@ namespace UniversalProcessors
                 // Therefore, non-zero SnowRate puts RainRespect to a state as if it was not raining.
                 if (parent.Map.weatherManager.SnowRate != 0)
                 {
-                    return Product.rainRespect.min;
+                    return CurrentProcess.rainFactor.min;
                 }
-                float rainRate = parent.Map.weatherManager.RainRate * (1 - RoofedFactor);
+                float rainRate = parent.Map.weatherManager.RainRate * (1 - RoofCoverage);
                 return GenMath.LerpDouble(Static_Weather.RainRateRange.TrueMin, Static_Weather.RainRateRange.TrueMax,
-                                          Product.rainRespect.min, Product.rainRespect.max,
+                                          CurrentProcess.rainFactor.min, CurrentProcess.rainFactor.max,
                                           rainRate);
             }
         }
 
-        public float SnowRespectSpeedFactor
+        public float CurrentSnowFactor
         {
             get
             {
@@ -286,18 +288,18 @@ namespace UniversalProcessors
                 {
                     return 0f;
                 }
-                if (Product.snowRespect.Span == 0)
+                if (CurrentProcess.snowFactor.Span == 0)
                 {
                     return 1f;
                 }
-                float snowRate = parent.Map.weatherManager.SnowRate * (1 - RoofedFactor);
+                float snowRate = parent.Map.weatherManager.SnowRate * (1 - RoofCoverage);
                 return GenMath.LerpDouble(Static_Weather.SnowRateRange.TrueMin, Static_Weather.SnowRateRange.TrueMax,
-                                          Product.snowRespect.min, Product.snowRespect.max,
+                                          CurrentProcess.snowFactor.min, CurrentProcess.snowFactor.max,
                                           snowRate);
             }
         }
 
-        public float WindRespectSpeedFactor
+        public float CurrentWindFactor
         {
             get
             {
@@ -305,21 +307,21 @@ namespace UniversalProcessors
                 {
                     return 0f;
                 }
-                if (Product.windRespect.Span == 0)
+                if (CurrentProcess.windFactor.Span == 0)
                 {
                     return 1f;
                 }
-                if (RoofedFactor != 0)
+                if (RoofCoverage != 0)
                 {
-                    return Product.windRespect.min;
+                    return CurrentProcess.windFactor.min;
                 }
                 return GenMath.LerpDouble(Static_Weather.WindSpeedRange.TrueMin, Static_Weather.WindSpeedRange.TrueMax,
-                                          Product.windRespect.min, Product.windRespect.max,
+                                          CurrentProcess.windFactor.min, CurrentProcess.windFactor.max,
                                           parent.Map.windManager.WindSpeed);
             }
         }
 
-        public float RoofedFactor  // How much of the building is under a roof
+        public float RoofCoverage  // How much of the building is under a roof
         {
             get
             {
@@ -338,20 +340,14 @@ namespace UniversalProcessors
                     }
                 }
                 return (float)roofedTiles / (float)allTiles;
-                //return (float)(num - num2) / (float)num;
             }
         }
 
-        public float SpeedFactor
+        public float CurrentSpeedFactor
         {
             get
             {
-                // Always >= 0
-                return Mathf.Max(CurrentTempProgressSpeedFactor * SunRespectSpeedFactor
-                                                                * RainRespectSpeedFactor
-                                                                * SnowRespectSpeedFactor
-                                                                * WindRespectSpeedFactor,
-                                 0f);
+                return Mathf.Max(CurrentTemperatureFactor * CurrentSunFactor * CurrentRainFactor * CurrentSnowFactor * CurrentWindFactor, 0f);
             }
         }
 
@@ -359,7 +355,12 @@ namespace UniversalProcessors
         {
             get
             {
-                return (1f / Product.baseFermentationDuration) * SpeedFactor;
+                //sanity check if someone entered the time in ticks instead of days
+                if (CurrentProcess.processDays > 1000)
+                {
+                    return 1f / CurrentProcess.processDays * CurrentSpeedFactor;
+                }
+                return 1f / (CurrentProcess.processDays * 60000f) * CurrentSpeedFactor;
             }
         }
 
@@ -436,27 +437,27 @@ namespace UniversalProcessors
                 {
                     center = drawPos,
                     size = Static_Bar.Size,
-                    fillPercent = ingredientCount / (float)Product.maxCapacity,
+                    fillPercent = ingredientCount / (float)CurrentProcess.maxCapacity,
                     filledMat = BarFilledMat,
                     unfilledMat = Static_Bar.UnfilledMat,
                     margin = 0.1f,
                     rotation = Rot4.North
                 });
             }
-            if (Product != null && Props.showProductIcon && UniversalFermenterSettings.showProductIconGlobal)
+            if (CurrentProcess != null && UF_Settings.showProductIconGlobal && Props.showProductIcon && ProcessListSize > 1)
             {
                 Vector3 drawPos = parent.DrawPos;
                 drawPos.y += 0.02f;
                 drawPos.z += 0.05f;
                 Matrix4x4 matrix = default(Matrix4x4);
                 matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(0.75f, 1f, 0.75f));
-                Graphics.DrawMesh(MeshPool.plane10, matrix, UniversalFermenter_Utility.productMaterials[Product], 0);
+                Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.productMaterials[CurrentProcess], 0);
             }
         }
         
         public bool AddIngredient(Thing ingredient)
         {
-            if (!Product.ingredientFilter.Allows(ingredient))
+            if (!CurrentProcess.ingredientFilter.Allows(ingredient))
             {
                 return false;
             }
@@ -482,7 +483,7 @@ namespace UniversalProcessors
                 Log.Warning("Universal Fermenter:: Tried to add ingredient to a fermenter full of product. Colonists should take the product first.");
                 return;
             }
-            int num = Mathf.Min(count, Product.maxCapacity - ingredientCount);
+            int num = Mathf.Min(count, CurrentProcess.maxCapacity - ingredientCount);
             if (num <= 0)
             {
                 return;
@@ -502,14 +503,14 @@ namespace UniversalProcessors
                 Log.Warning("Universal Fermenter:: Tried to get product but it's not yet fermented.");
                 return null;
             }
-            Thing thing = ThingMaker.MakeThing(Product.thingDef, null);
+            Thing thing = ThingMaker.MakeThing(CurrentProcess.thingDef, null);
             CompIngredients comp = thing.TryGetComp<CompIngredients>();
             if (comp != null && !fermenterIngredients.NullOrEmpty())
             {
                 comp.ingredients.AddRange(fermenterIngredients);
                 fermenterIngredients.Clear();
             }
-            thing.stackCount = Mathf.RoundToInt(ingredientCount * Product.efficiency);
+            thing.stackCount = Mathf.RoundToInt(ingredientCount * CurrentProcess.efficiency);
             Reset();
             return thing;
         }
@@ -526,13 +527,13 @@ namespace UniversalProcessors
 
         public void GraphicChange(bool toEmpty)
         {
-            string suffix = Product.graphSuffix;
+            string suffix = CurrentProcess.graphicSuffix;
             if (suffix != null)
             {
                 string texPath = defaultTexPath;
-                if (toEmpty == false)
+                if (!toEmpty)
                 {
-                    texPath += Product.graphSuffix;
+                    texPath += CurrentProcess.graphicSuffix;
                 }
                 TexReloader.Reload(parent, texPath);
             }
@@ -561,13 +562,13 @@ namespace UniversalProcessors
                 if (!Empty)
                 {
                     float ambientTemperature = parent.AmbientTemperature;
-                    if (ambientTemperature > Product.temperatureSafe.max)
+                    if (ambientTemperature > CurrentProcess.temperatureSafe.max)
                     {
-                        ruinedPercent += (ambientTemperature - Product.temperatureSafe.max) * Product.progressPerDegreePerTick * (float)ticks;
+                        ruinedPercent += (ambientTemperature - CurrentProcess.temperatureSafe.max) * (CurrentProcess.ruinedPerDegreePerHour / 250000f) * (float)ticks;
                     }
-                    else if (ambientTemperature < Product.temperatureSafe.min)
+                    else if (ambientTemperature < CurrentProcess.temperatureSafe.min)
                     {
-                        ruinedPercent -= (ambientTemperature - Product.temperatureSafe.min) * Product.progressPerDegreePerTick * (float)ticks;
+                        ruinedPercent -= (ambientTemperature - CurrentProcess.temperatureSafe.min) * (CurrentProcess.ruinedPerDegreePerHour / 250000f) * (float)ticks;
                     }
                 }
                 if (ruinedPercent >= 1f)
@@ -615,11 +616,11 @@ namespace UniversalProcessors
             {
                 if (Fermented)
                 {
-                    stringBuilder.AppendLine("UF_ContainsProduct".Translate(ingredientCount, Product.maxCapacity, Product.thingDef.label));
+                    stringBuilder.AppendLine("UF_ContainsProduct".Translate(ingredientCount, CurrentProcess.maxCapacity, CurrentProcess.thingDef.label));
                 }
                 else
                 {
-                    stringBuilder.AppendLine("UF_ContainsIngredient".Translate(ingredientCount, Product.maxCapacity, SummaryAddedIngredients));
+                    stringBuilder.AppendLine("UF_ContainsIngredient".Translate(ingredientCount, CurrentProcess.maxCapacity, SummaryAddedIngredients));
                 }
             }
 
@@ -634,16 +635,16 @@ namespace UniversalProcessors
                 else if (parent.Map != null) // parent.Map is null when minified
                 {
                     stringBuilder.AppendLine("UF_Progress".Translate(Progress.ToStringPercent(),TimeLeft()));
-                    if (SpeedFactor != 1f)
+                    if (CurrentSpeedFactor != 1f)
                     {
                         // Should be max. 59 chars in the English translation
-                        if (SpeedFactor < 1f)
+                        if (CurrentSpeedFactor < 1f)
                         {
-                            stringBuilder.Append("UF_NonIdealInfluences".Translate(WhatsWrong())).Append(" ").AppendLine("UF_NonIdealSpeedFactor".Translate(SpeedFactor.ToStringPercent()));
+                            stringBuilder.Append("UF_NonIdealInfluences".Translate(WhatsWrong())).Append(" ").AppendLine("UF_NonIdealSpeedFactor".Translate(CurrentSpeedFactor.ToStringPercent()));
                         }
                         else
                         {
-                            stringBuilder.AppendLine("UF_NonIdealSpeedFactor".Translate(SpeedFactor.ToStringPercent()));
+                            stringBuilder.AppendLine("UF_NonIdealSpeedFactor".Translate(CurrentSpeedFactor.ToStringPercent()));
                         }
                     }
                 }
@@ -654,13 +655,13 @@ namespace UniversalProcessors
             {
                 "UF_IdealSafeProductionTemperature".Translate(),
                 ": ",
-                Product.temperatureIdeal.min.ToStringTemperature("F0"),
+                CurrentProcess.temperatureIdeal.min.ToStringTemperature("F0"),
                 "~",
-                Product.temperatureIdeal.max.ToStringTemperature("F0"),
+                CurrentProcess.temperatureIdeal.max.ToStringTemperature("F0"),
                 " (",
-                Product.temperatureSafe.min.ToStringTemperature("F0"),
+                CurrentProcess.temperatureSafe.min.ToStringTemperature("F0"),
                 "~",
-                Product.temperatureSafe.max.ToStringTemperature("F0"),
+                CurrentProcess.temperatureSafe.max.ToStringTemperature("F0"),
                 ")"
             }));
 
@@ -681,26 +682,26 @@ namespace UniversalProcessors
 
         public string WhatsWrong()
         {
-            if (SpeedFactor < 1f)
+            if (CurrentSpeedFactor < 1f)
             {
                 List<string> wrong = new List<string>();
-                if (CurrentTempProgressSpeedFactor < 1f)
+                if (CurrentTemperatureFactor < 1f)
                 {
                     wrong.Add("UF_WeatherTemperature".Translate());
                 }
-                if (SunRespectSpeedFactor < 1f)
+                if (CurrentSunFactor < 1f)
                 {
                     wrong.Add("UF_WeatherSunshine".Translate());
                 }
-                if (RainRespectSpeedFactor < 1f)
+                if (CurrentRainFactor < 1f)
                 {
                     wrong.Add("UF_WeatherRain".Translate());
                 }
-                if (SnowRespectSpeedFactor < 1f)
+                if (CurrentSnowFactor < 1f)
                 {
                     wrong.Add("UF_WeatherSnow".Translate());
                 }
-                if (WindRespectSpeedFactor < 1f)
+                if (CurrentWindFactor < 1f)
                 {
                     wrong.Add("UF_WeatherWind".Translate());
                 }
@@ -725,9 +726,9 @@ namespace UniversalProcessors
 
             if (!Empty)
             {
-                if (Product.temperatureSafe.Includes(ambientTemperature))
+                if (CurrentProcess.temperatureSafe.Includes(ambientTemperature))
                 {
-                    if (Product.temperatureIdeal.Includes(ambientTemperature))
+                    if (CurrentProcess.temperatureIdeal.Includes(ambientTemperature))
                     {
                         str = "UF_Ideal".Translate();
                     }
@@ -740,7 +741,7 @@ namespace UniversalProcessors
                 {
                     if (ruinedPercent > 0f)
                     {
-                        if (ambientTemperature < Product.temperatureSafe.min)
+                        if (ambientTemperature < CurrentProcess.temperatureSafe.min)
                         {
                             str = "Freezing".Translate();
                         }

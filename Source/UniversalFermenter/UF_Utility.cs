@@ -7,21 +7,26 @@ using UnityEngine;
 using RimWorld;
 using Verse;
 
-namespace UniversalProcessors
+namespace UniversalFermenter
 {
     [StaticConstructorOnStartup]
-    public static class UniversalFermenter_Utility
+    public static class UF_Utility
     {
-        static UniversalFermenter_Utility()
+        static UF_Utility()
         {
             foreach (ThingDef thingDef in DefDatabase<ThingDef>.AllDefs.Where(x => x.HasComp(typeof(CompUniversalFermenter))))
             {
                 if (thingDef.comps.Find(c => c.compClass == typeof(CompUniversalFermenter)) is CompProperties_UniversalFermenter compUF)
                 {
-                    allUFProducts.AddRange(compUF.products);
+                    if (!compUF.products.NullOrEmpty())
+                    {
+                        Log.Warning("Universal Fermenter: ThingDef " + thingDef.defName + " uses outdated field 'products', please rename to 'processes'.");
+                        compUF.processes.AddRange(compUF.products);
+                    }
+                    allUFProducts.AddRange(compUF.processes);
                 }
             }
-            foreach (UniversalFermenterProduct product in allUFProducts)
+            foreach (UF_Process product in allUFProducts)
             {
                 productGizmos.Add(product, new Command_Action
                 {
@@ -34,7 +39,7 @@ namespace UniversalProcessors
                         foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
                         {
                             CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                            if (comp != null && comp.Product == product)
+                            if (comp != null && comp.CurrentProcess == product)
                             {
                                 NextResource(comp);
                             }
@@ -50,7 +55,7 @@ namespace UniversalProcessors
         public static void NextResource(CompUniversalFermenter comp)
         {
             comp.nextResourceInd++;
-            if (comp.nextResourceInd >= comp.ResourceListSize)
+            if (comp.nextResourceInd >= comp.ProcessListSize)
             {
                 comp.nextResourceInd = 0;
             }
@@ -59,9 +64,9 @@ namespace UniversalProcessors
                 comp.currentResourceInd = comp.nextResourceInd;
             }
         }
-        public static List<UniversalFermenterProduct> allUFProducts = new List<UniversalFermenterProduct>();
-        public static Dictionary<UniversalFermenterProduct, Command_Action> productGizmos = new Dictionary<UniversalFermenterProduct, Command_Action>();
-        public static Dictionary<UniversalFermenterProduct, Material> productMaterials = new Dictionary<UniversalFermenterProduct, Material>();
+        public static List<UF_Process> allUFProducts = new List<UF_Process>();
+        public static Dictionary<UF_Process, Command_Action> productGizmos = new Dictionary<UF_Process, Command_Action>();
+        public static Dictionary<UF_Process, Material> productMaterials = new Dictionary<UF_Process, Material>();
         
         public static Command_Action DispSpeeds = new Command_Action()
         {
@@ -76,11 +81,11 @@ namespace UniversalProcessors
                     if (comp != null)
                     {
                         Log.Message(comp.parent.ToString() + ": " +
-                              "sun: " + comp.SunRespectSpeedFactor.ToString("0.00") +
-                              "| rain: " + comp.RainRespectSpeedFactor.ToString("0.00") +
-                              "| snow: " + comp.SnowRespectSpeedFactor.ToString("0.00") +
-                              "| wind: " + comp.WindRespectSpeedFactor.ToString("0.00") +
-                              "| roofed: " + comp.RoofedFactor.ToString("0.00"));
+                              "sun: " + comp.CurrentSunFactor.ToString("0.00") +
+                              "| rain: " + comp.CurrentRainFactor.ToString("0.00") +
+                              "| snow: " + comp.CurrentSnowFactor.ToString("0.00") +
+                              "| wind: " + comp.CurrentWindFactor.ToString("0.00") +
+                              "| roofed: " + comp.RoofCoverage.ToString("0.00"));
                     }
                 }
             }

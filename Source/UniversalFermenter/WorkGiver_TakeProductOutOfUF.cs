@@ -4,9 +4,9 @@ using RimWorld;
 using Verse;
 using Verse.AI;
 
-namespace UniversalProcessors
+namespace UniversalFermenter
 {
-    public class WorkGiver_TakeProductOutOfUniversalFermenter : WorkGiver_Scanner
+    public class WorkGiver_TakeProductOutOfUF : WorkGiver_Scanner
     {
         public override PathEndMode PathEndMode => PathEndMode.Touch;
 
@@ -26,7 +26,7 @@ namespace UniversalProcessors
 
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
-            return new Job(DefDatabase<JobDef>.GetNamed("TakeProductOutOfUniversalFermenter"), t);
+            return new Job(UF_DefOf.TakeProductOutOfUniversalFermenter, t);
         }
     }
 }

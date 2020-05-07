@@ -3,8 +3,8 @@
 
   <ThingDef ParentName="BuildingBase">
     <defName>UniversalFermenter</defName>
-    <label>Universal Fermenter</label>
-    <description>A barrel for fermenting plant matter.</description>
+    <label>fermenting barrel</label>
+    <description>A barrel for fermenting various things into other products.</description>
     <graphicData>
       <texPath>Things/Building/Production/FermentingBarrel</texPath>
       <graphicClass>Graphic_Multi</graphicClass>
@@ -35,25 +35,34 @@
       <WoodLog>30</WoodLog>
     </costList>
     <comps>
-      <li Class="CompProperties_TemperatureRuinable">
-        <minSafeTemperature>-1</minSafeTemperature>
-        <maxSafeTemperature>32</maxSafeTemperature>
-        <progressPerDegreePerTick>0.00001</progressPerDegreePerTick>
+      <li Class="UniversalProcessors.CompProperties_UniversalFermenter">
+        <showProductIcon>true</showProductIcon>
+        <processes>
+          <li>
+            <thingDef>Beer</thingDef>
+            <ingredientFilter>
+              <thingDefs>
+                <li>Wort</li>
+              </thingDefs>
+            </ingredientFilter>
+            <usesTemperature>true</usesTemperature>
+            <temperatureSafe>-1.0~32.0</temperatureSafe>
+            <temperatureIdeal>7.0~32.0</temperatureIdeal>
+            <ruinedPerDegreePerHour>2.5</ruinedPerDegreePerHour> <!-- percent per degree per hour -->
+            <speedBelowSafe>0.1</speedBelowSafe>
+            <speedAboveSafe>1.0</speedAboveSafe>
+            <processDays>6</processDays> <!-- in days, 60000 ticks is a day -->
+            <maxCapacity>25</maxCapacity>
+            <efficiency>1.0</efficiency>
+            <sunFactor>1.0~1.0</sunFactor>
+            <rainFactor>1.0~1.0</rainFactor>
+            <snowFactor>1.0~1.0</snowFactor>
+            <windFactor>1.0~1.0</windFactor>
+            <graphicSuffix></graphicSuffix>
+          </li>
+        </processes>
       </li>
-	  <li Class="UniversalProcessors.CompProperties_UniversalFermenter">
-      <showProductIcon>true</showProductIcon>
-      <products>
-        <li>
-          <thingDef>Beer</thingDef>
-          <ingredientFilter>
-            <thingDefs>
-              <li>Wort</li>
-            </thingDefs>
-          </ingredientFilter>
-        </li>
-      </products>
-	  </li>
-	  <li Class="CompProperties_Forbiddable"/>
+      <li Class="CompProperties_Forbiddable"/>
     </comps>
     <tickerType>Rare</tickerType>
     <rotatable>true</rotatable>

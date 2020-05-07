@@ -3,7 +3,7 @@ using System.Reflection;
 
 using Verse;
 
-namespace UniversalProcessors
+namespace UniversalFermenter
 {
 	public static class TexReloader
 	{

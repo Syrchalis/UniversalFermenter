@@ -1,7 +1,7 @@
 using UnityEngine;
 using Verse;
 
-namespace UniversalProcessors
+namespace UniversalFermenter
 {
 	[StaticConstructorOnStartup]
 	public static class Static_Bar

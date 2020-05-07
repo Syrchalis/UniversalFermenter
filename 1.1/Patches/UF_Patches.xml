@@ -9,19 +9,19 @@
 		<success>Always</success> 
 		<operations>
 			<li Class="PatchOperationTest">
-				<xpath>/Defs/ThingDef[defName="UniversalFermenter"]</xpath>
+				<xpath>*/ThingDef[defName="UniversalFermenter"]</xpath>
 			</li>
 		
 			<li Class="PatchOperationRemove">
-				<xpath>/Defs/ThingDef[defName="UniversalFermenter"]/costList/WoodLog</xpath>
+				<xpath>*/ThingDef[defName="UniversalFermenter"]/costList/WoodLog</xpath>
 			</li>
 			
 			<li Class="PatchOperationRemove">
-				<xpath>/Defs/ThingDef[defName="UniversalFermenter"]/constructEffect</xpath>
+				<xpath>*/ThingDef[defName="UniversalFermenter"]/constructEffect</xpath>
 			</li>
 			
 			<li Class="PatchOperationAdd">
-				<xpath>/Defs/ThingDef[defName="UniversalFermenter"]</xpath>
+				<xpath>*/ThingDef[defName="UniversalFermenter"]</xpath>
 				<value>
 					<costStuffCount>30</costStuffCount>
 					<stuffCategories>
@@ -31,5 +31,11 @@
 			</li>
 		</operations>
   </Operation>
+
+	<Operation Class="PatchOperationAttributeSet">
+	  <xpath>*/ThingDef/comps/li[contains(@Class,'UniversalProcessors.CompProperties_UniversalFermenter')]</xpath>
+		<attribute>Class</attribute>
+		<value>UniversalFermenter.CompProperties_UniversalFermenter</value>
+	</Operation>
 
 </Patch>

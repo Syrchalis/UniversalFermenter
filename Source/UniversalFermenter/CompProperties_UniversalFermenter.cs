@@ -1,14 +1,14 @@
 ﻿using Verse;
 using System.Collections.Generic;
 
-namespace UniversalProcessors
+namespace UniversalFermenter
 {
 
 	public class CompProperties_UniversalFermenter : CompProperties
 	{
-
-		public List<UniversalFermenterProduct> products = new List<UniversalFermenterProduct>();
-        public bool showProductIcon = false;
+		public List<UF_Process> products = new List<UF_Process>();
+        public List<UF_Process> processes = new List<UF_Process>();
+        public bool showProductIcon = true;
 
 		public CompProperties_UniversalFermenter()
 		{
@@ -18,9 +18,9 @@ namespace UniversalProcessors
 		public override void ResolveReferences(ThingDef parentDef)
 		{
 			base.ResolveReferences(parentDef);
-			for (int i = 0; i < this.products.Count; i++)
+			for (int i = 0; i < this.processes.Count; i++)
 			{				
-				this.products[i].ResolveReferences();
+				this.processes[i].ResolveReferences();
 			}
 		}
 	}

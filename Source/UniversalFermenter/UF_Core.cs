@@ -7,14 +7,14 @@ using RimWorld;
 using Verse;
 using UnityEngine;
 
-namespace UniversalProcessors
+namespace UniversalFermenter
 {
-    public class UniversalFermenter_Core : Mod
+    public class UF_Core : Mod
     {
-        public static UniversalFermenterSettings settings;
-        public UniversalFermenter_Core(ModContentPack content) : base(content)
+        public static UF_Settings settings;
+        public UF_Core(ModContentPack content) : base(content)
         {
-            settings = GetSettings<UniversalFermenterSettings>();
+            settings = GetSettings<UF_Settings>();
         }
         public override string SettingsCategory() => "UF_SettingsCategory".Translate();
 
@@ -24,7 +24,7 @@ namespace UniversalProcessors
             {
                 Listing_Standard listing_Standard = new Listing_Standard();
                 listing_Standard.Begin(inRect);
-                listing_Standard.CheckboxLabeled("UF_ShowProductIcon".Translate(), ref UniversalFermenterSettings.showProductIconGlobal, "UF_ShowProductIconTooltip".Translate());
+                listing_Standard.CheckboxLabeled("UF_ShowProductIcon".Translate(), ref UF_Settings.showProductIconGlobal, "UF_ShowProductIconTooltip".Translate());
                 listing_Standard.End();
                 settings.Write();
             }
@@ -36,7 +36,7 @@ namespace UniversalProcessors
         }
     }
 
-    public class UniversalFermenterSettings : ModSettings
+    public class UF_Settings : ModSettings
     {
         public static bool showProductIconGlobal = true;
         public override void ExposeData()

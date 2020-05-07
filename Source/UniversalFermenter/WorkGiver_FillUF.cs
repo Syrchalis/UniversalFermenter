@@ -5,9 +5,9 @@ using RimWorld;
 using Verse;
 using Verse.AI;
 
-namespace UniversalProcessors
+namespace UniversalFermenter
 {
-    public class WorkGiver_FillUniversalFermenter : WorkGiver_Scanner
+    public class WorkGiver_FillUF : WorkGiver_Scanner
     {
         private static string TemperatureTrans;
         private static string NoIngredientTrans;
@@ -35,8 +35,8 @@ namespace UniversalProcessors
             }
 
             var ambientTemperature = comp.parent.AmbientTemperature;
-            if (ambientTemperature < comp.Product.temperatureSafe.min + 2f ||
-                ambientTemperature > comp.Product.temperatureSafe.max - 2f)
+            if (ambientTemperature < comp.CurrentProcess.temperatureSafe.min + 2f ||
+                ambientTemperature > comp.CurrentProcess.temperatureSafe.max - 2f)
             {
                 JobFailReason.Is(TemperatureTrans);
                 return false;
@@ -66,7 +66,7 @@ namespace UniversalProcessors
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
             var t2 = FindIngredient(pawn, t);
-            return new Job(DefDatabase<JobDef>.GetNamed("FillUniversalFermenter"), t, t2)
+            return new Job(UF_DefOf.FillUniversalFermenter, t, t2)
             {
                 count = t.TryGetComp<CompUniversalFermenter>().SpaceLeftForIngredient
             };
@@ -74,7 +74,7 @@ namespace UniversalProcessors
 
         private Thing FindIngredient(Pawn pawn, Thing fermenter)
         {
-            var filter = fermenter.TryGetComp<CompUniversalFermenter>().Product.ingredientFilter;
+            var filter = fermenter.TryGetComp<CompUniversalFermenter>().CurrentProcess.ingredientFilter;
             Predicate<Thing> predicate = x => !x.IsForbidden(pawn) && pawn.CanReserve(x) && filter.Allows(x);
             var validator = predicate;
             return GenClosest.ClosestThingReachable(pawn.Position, pawn.Map, filter.BestThingRequest,
