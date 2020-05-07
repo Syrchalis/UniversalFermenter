@@ -4,16 +4,12 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
-
-//using System.Linq; // Used for texture loading in GetIcon()
-
 using UnityEngine;
 using RimWorld;
 using Verse;
 
 namespace UniversalProcessors
 {
-
     public class CompUniversalFermenter : ThingComp
     {
         public static List<CompUniversalFermenter> comps = new List<CompUniversalFermenter>();
@@ -128,11 +124,7 @@ namespace UniversalProcessors
 
                 substractLength = ("Contains " + Product.maxCapacity.ToString() + "/" + Product.maxCapacity.ToString() + " ").Length;
                 maxSummaryLength = lineLength - substractLength;
-                return Utils.VowelTrim(summary, maxSummaryLength);
-                /*if (summary.Length > maxSummaryLength)
-					return summary.Remove(maxSummaryLength - 3) + " ..";
-				else
-					return summary;*/
+                return UniversalFermenter_Utility.VowelTrim(summary, maxSummaryLength);
             }
         }
 
@@ -140,16 +132,7 @@ namespace UniversalProcessors
         {
             get
             {
-                /*string summary = "";
-				foreach (ThingDef thingDef in NextIngredientFilter.AllowedThingDefs)
-				{
-					if (summary == "")
-						summary += thingDef.label;
-					else
-						summary += ", " + thingDef.label;
-				}*/
-                //summary = NextIngredientFilter.ToString();
-                return Utils.IngredientFilterSummary(NextProduct.ingredientFilter);
+                return UniversalFermenter_Utility.IngredientFilterSummary(NextProduct.ingredientFilter);
             }
         }
 
@@ -460,7 +443,7 @@ namespace UniversalProcessors
                     rotation = Rot4.North
                 });
             }
-            if (Product != null)
+            if (Product != null && Props.showProductIcon && UniversalFermenterSettings.showProductIconGlobal)
             {
                 Vector3 drawPos = parent.DrawPos;
                 drawPos.y += 0.02f;

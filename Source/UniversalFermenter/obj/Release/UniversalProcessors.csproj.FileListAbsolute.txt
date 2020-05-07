@@ -1,0 +1,5 @@
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\SYR_UniversalFermenter\Assemblies\UniversalProcessors.dll
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\SYR_UniversalFermenter\Source\UniversalFermenter\obj\Release\UniversalProcessors.csproj.CoreCompileInputs.cache
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\SYR_UniversalFermenter\Source\UniversalFermenter\obj\Release\UniversalProcessors.dll
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\SYR_UniversalFermenter\1.1\Assemblies\UniversalProcessors.dll
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\SYR_UniversalFermenter\Source\UniversalFermenter\obj\Release\UniversalProcessors.csprojAssemblyReference.cache

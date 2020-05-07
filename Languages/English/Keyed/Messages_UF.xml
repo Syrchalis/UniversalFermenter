@@ -1,7 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <LanguageData>
 
-	<!-- Universal Fermenter -->
+	<!-- Settings -->
+	<UF_SettingsCategory>Universal Fermenter</UF_SettingsCategory>
+	<UF_ShowProductIcon>Show product icon</UF_ShowProductIcon>
+	<UF_ShowProductIconTooltip>Displays the currently selected product as icon on the building - this can be overwritten by each building individually, but if disabled here is always disabled</UF_ShowProductIconTooltip>
+
+	<!-- Universal Fermenter Strings -->
 	<UF_ContainsIngredient>Contains {0} / {1} {2}.</UF_ContainsIngredient>
 	<UF_ContainsProduct>Contains {0} / {1} {2}.</UF_ContainsProduct>
 	<UF_NoIngredient>need ingredients</UF_NoIngredient>

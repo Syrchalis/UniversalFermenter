@@ -7,7 +7,8 @@ namespace UniversalProcessors
 	public class CompProperties_UniversalFermenter : CompProperties
 	{
 
-		public List<UniversalFermenterProduct> products = new List<UniversalFermenterProduct>();		
+		public List<UniversalFermenterProduct> products = new List<UniversalFermenterProduct>();
+        public bool showProductIcon = false;
 
 		public CompProperties_UniversalFermenter()
 		{
