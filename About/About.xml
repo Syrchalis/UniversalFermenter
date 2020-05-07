@@ -6,5 +6,23 @@
 		<li>1.1</li>
 	</supportedVersions>
 	<packageId>syrchalis.universalfermenter</packageId>
-    <description>Adds a universal fermenter that supports multiple types of fermenting options. Optimized version with smarter workgivers, jobs and gizmos. Edited by Dubwise and me.</description>
+    <description>Allows various product transformation processes
+
+So what's different about this version?
+
+Performance.
+
+The original's workgivers scan the entire map for fermenting barrels which is bad, especially on large maps. Worse though, the gizmos caused insane FPS drops whenever multiple barrels were selected, but even a single barrel had a way too high load. With the help of a dictionary cache that problem is gone entirely and selecting a lot of barrels and switching what you want to ferment is no issue anymore.
+
+Also comes with new fields for modders and new features for players.
+
+Player features:
+- Icon that displays the product of the current process (can be disabled in mod settings)
+- New greyscale barrel model, which allows...
+- Barrel can be made from woody stuff, so if you have any added wood-types you can use those
+
+Modders refer to https://github.com/Syrchalis/UniversalFermenter/wiki for a feature list and explanation for the fields.
+
+
+Optimized by Dubwise and me.</description>
 </ModMetaData>

@@ -33,6 +33,7 @@
   </Operation>
 
 	<Operation Class="PatchOperationAttributeSet">
+		<success>Always</success>
 	  <xpath>*/ThingDef/comps/li[contains(@Class,'UniversalProcessors.CompProperties_UniversalFermenter')]</xpath>
 		<attribute>Class</attribute>
 		<value>UniversalFermenter.CompProperties_UniversalFermenter</value>

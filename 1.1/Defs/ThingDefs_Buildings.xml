@@ -35,7 +35,7 @@
       <WoodLog>30</WoodLog>
     </costList>
     <comps>
-      <li Class="UniversalProcessors.CompProperties_UniversalFermenter">
+      <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
         <showProductIcon>true</showProductIcon>
         <processes>
           <li>
