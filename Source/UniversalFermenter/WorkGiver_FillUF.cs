@@ -16,7 +16,7 @@ namespace UniversalFermenter
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
-            return CompUniversalFermenter.comps.Where(x => x.parent.Map == pawn.Map).Select(x => x.parent);
+            return UF_Utility.comps.Where(x => x.parent.Map == pawn.Map).Select(x => x.parent);
         }
 
         public static void Reset()

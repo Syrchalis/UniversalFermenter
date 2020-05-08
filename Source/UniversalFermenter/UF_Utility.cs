@@ -12,6 +12,11 @@ namespace UniversalFermenter
     [StaticConstructorOnStartup]
     public static class UF_Utility
     {
+        public static List<UF_Process> allUFProducts = new List<UF_Process>();
+        public static Dictionary<UF_Process, Command_Action> productGizmos = new Dictionary<UF_Process, Command_Action>();
+        public static Dictionary<UF_Process, Material> productMaterials = new Dictionary<UF_Process, Material>();
+        public static List<CompUniversalFermenter> comps = new List<CompUniversalFermenter>();
+
         static UF_Utility()
         {
             foreach (ThingDef thingDef in DefDatabase<ThingDef>.AllDefs.Where(x => x.HasComp(typeof(CompUniversalFermenter))))
@@ -64,9 +69,6 @@ namespace UniversalFermenter
                 comp.currentResourceInd = comp.nextResourceInd;
             }
         }
-        public static List<UF_Process> allUFProducts = new List<UF_Process>();
-        public static Dictionary<UF_Process, Command_Action> productGizmos = new Dictionary<UF_Process, Command_Action>();
-        public static Dictionary<UF_Process, Material> productMaterials = new Dictionary<UF_Process, Material>();
         
         public static Command_Action DispSpeeds = new Command_Action()
         {

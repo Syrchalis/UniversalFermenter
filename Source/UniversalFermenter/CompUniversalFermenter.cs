@@ -12,17 +12,16 @@ namespace UniversalFermenter
 {
     public class CompUniversalFermenter : ThingComp
     {
-        public static List<CompUniversalFermenter> comps = new List<CompUniversalFermenter>();
         public override void PostDeSpawn(Map map)
         {
             base.PostDeSpawn(map);
-            comps.Remove(this);
+            UF_Utility.comps.Remove(this);
         }
 
         public override void PostSpawnSetup(bool respawningAfterLoad)
         {
             base.PostSpawnSetup(respawningAfterLoad);
-            comps.Add(this);
+            UF_Utility.comps.Add(this);
         }
 
         public override IEnumerable<Gizmo> CompGetGizmosExtra()
