@@ -2,6 +2,8 @@
 <Configuration>
   <Excluded>
     <exclude>C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\SYR_UniversalFermenter\.git</exclude>
+    <exclude>C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\SYR_UniversalFermenter\README.md</exclude>
     <exclude>C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\SYR_UniversalFermenter\Source</exclude>
+    <exclude>C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\SYR_UniversalFermenter\SYR_UniversalFermenter.7z</exclude>
   </Excluded>
 </Configuration>
