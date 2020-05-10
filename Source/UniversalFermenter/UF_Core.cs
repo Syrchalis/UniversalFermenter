@@ -32,6 +32,14 @@ namespace UniversalFermenter
                 listing_Standard.CheckboxLabeled("UF_SingleItemIcon".Translate(), ref UF_Settings.singleItemIcon, "UF_SingleItemIconTooltip".Translate());
                 listing_Standard.Gap(12);
                 listing_Standard.CheckboxLabeled("UF_SortAlphabetically".Translate(), ref UF_Settings.sortAlphabetically, "UF_SortAlphabeticallyTooltip".Translate());
+                listing_Standard.Gap(24);
+                if (listing_Standard.ButtonText("UF_DefaultSettings".Translate(), "UF_DefaultSettingsTooltip".Translate()))
+                {
+                    UF_Settings.showProcessIconGlobal = true;
+                    UF_Settings.processIconSize = 0.6f;
+                    UF_Settings.singleItemIcon = true;
+                    UF_Settings.sortAlphabetically = false;
+    }
                 listing_Standard.End();
                 settings.Write();
             }

@@ -4,13 +4,15 @@
 	<!-- Settings -->
 	<UF_SettingsCategory>Universal Fermenter</UF_SettingsCategory>
 	<UF_ShowProcessIcon>Show process icon</UF_ShowProcessIcon>
-	<UF_ShowProcessIconTooltip>If enabled allows showing of process icon on buildings that have it enabled, otherwise will never show icons on buildings</UF_ShowProcessIconTooltip>
-	<UF_ProcessIconSize>Process icon size (default: 60%)</UF_ProcessIconSize>
-	<UF_ProcessIconSizeTooltip>Sets the size for the process icon that is shown on some processing buildings</UF_ProcessIconSizeTooltip>
+	<UF_ShowProcessIconTooltip>If enabled allows showing of process icon on buildings that have it enabled, otherwise will never show icons on buildings (default: true)</UF_ShowProcessIconTooltip>
+	<UF_ProcessIconSize>Process icon size</UF_ProcessIconSize>
+	<UF_ProcessIconSizeTooltip>Sets the size for the process icon that is shown on some processing buildings (default: 60%)</UF_ProcessIconSizeTooltip>
 	<UF_SingleItemIcon>Single item icon</UF_SingleItemIcon>
-	<UF_SingleItemIconTooltip>If enabled will use icons that resemble a single item, otherwise will use icons that resemble a full stack</UF_SingleItemIconTooltip>
+	<UF_SingleItemIconTooltip>If enabled will use icons that resemble a single item, otherwise will use icons that resemble a full stack (default: true)</UF_SingleItemIconTooltip>
 	<UF_SortAlphabetically>Sort list alphabetically</UF_SortAlphabetically>
-	<UF_SortAlphabeticallyTooltip>If enabled will sort list when clicking on the button to change process alphabetically, otherwise will sort by thingDef list</UF_SortAlphabeticallyTooltip>
+	<UF_SortAlphabeticallyTooltip>If enabled will sort list when clicking on the button to change process alphabetically, otherwise will sort by thingDef list (default: false)</UF_SortAlphabeticallyTooltip>
+	<UF_DefaultSettings>Reset to default</UF_DefaultSettings>
+	<UF_DefaultSettingsTooltip>Reset settings to default values</UF_DefaultSettingsTooltip>
 
 	<!-- Universal Fermenter Strings -->
 	<UF_ContainsIngredient>Contains {0} / {1} {2}.</UF_ContainsIngredient>

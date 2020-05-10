@@ -16,7 +16,18 @@ namespace UniversalFermenter
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
-            return UF_Utility.comps.Where(x => x.parent.Map == pawn.Map).Select(x => x.parent);
+            return UF_Utility.comps.Where(x => x.parent.Map == pawn.Map && x.SpaceLeftForIngredient > 0).Select(x => x.parent);
+        }
+
+        public override bool Prioritized => true;
+        public override float GetPriority(Pawn pawn, TargetInfo t)
+        {
+            CompUniversalFermenter comp = t.Thing.TryGetComp<CompUniversalFermenter>();
+            if (comp != null)
+            {
+                return comp.CurrentProcess.maxCapacity - comp.SpaceLeftForIngredient;
+            }
+            return 0f;
         }
 
         public static void Reset()
