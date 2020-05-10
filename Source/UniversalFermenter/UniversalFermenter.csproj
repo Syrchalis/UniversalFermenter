@@ -58,6 +58,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Building_ColorCoded.cs" />
     <Compile Include="CompProperties_UniversalFermenter.cs" />
     <Compile Include="CompUniversalFermenter.cs" />
     <Compile Include="UF_DefOf.cs" />

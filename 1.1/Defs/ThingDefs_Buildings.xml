@@ -5,6 +5,7 @@
     <defName>UniversalFermenter</defName>
     <label>fermenting barrel</label>
     <description>A barrel for fermenting various things into other products.</description>
+    <thingClass>UniversalFermenter.Building_ColorCoded</thingClass>
     <graphicData>
       <texPath>Things/Building/Production/FermentingBarrel</texPath>
       <graphicClass>Graphic_Multi</graphicClass>

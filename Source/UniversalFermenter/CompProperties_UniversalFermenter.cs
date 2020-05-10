@@ -1,5 +1,6 @@
 ﻿using Verse;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace UniversalFermenter
 {
@@ -9,8 +10,9 @@ namespace UniversalFermenter
 		public List<UF_Process> products = new List<UF_Process>();
         public List<UF_Process> processes = new List<UF_Process>();
         public bool showProductIcon = true;
+        public Vector2 barOffset = new Vector2(0f, 0.25f);
 
-		public CompProperties_UniversalFermenter()
+        public CompProperties_UniversalFermenter()
 		{
 			compClass = typeof(CompUniversalFermenter);
 		}

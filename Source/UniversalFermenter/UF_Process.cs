@@ -1,3 +1,4 @@
+using UnityEngine;
 using Verse;
 
 namespace UniversalFermenter
@@ -21,6 +22,8 @@ namespace UniversalFermenter
 		public FloatRange snowFactor = new FloatRange(1f, 1f);
 		public FloatRange windFactor = new FloatRange(1f, 1f);
 		public string graphicSuffix = null;
+        public bool colorCoded = false;
+        public Color color = new Color(1.0f, 1.0f, 1.0f);
 
 		public void ResolveReferences()
 		{			

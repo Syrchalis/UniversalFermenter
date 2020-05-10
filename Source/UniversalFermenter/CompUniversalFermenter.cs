@@ -12,17 +12,38 @@ namespace UniversalFermenter
 {
     public class CompUniversalFermenter : ThingComp
     {
+        public override void PostSpawnSetup(bool respawningAfterLoad)
+        {
+            base.PostSpawnSetup(respawningAfterLoad);
+            UF_Utility.comps.Add(this);
+            if (!Empty)
+            {
+                graphicChangeQueued = true;
+            }
+        }
+
         public override void PostDeSpawn(Map map)
         {
             base.PostDeSpawn(map);
             UF_Utility.comps.Remove(this);
         }
 
-        public override void PostSpawnSetup(bool respawningAfterLoad)
-        {
-            base.PostSpawnSetup(respawningAfterLoad);
-            UF_Utility.comps.Add(this);
-        }
+        private int ingredientCount;
+        private float progressInt;
+        private Material barFilledCachedMat;
+        public int nextResourceInd;
+        public int currentResourceInd;
+        private List<string> ingredientLabels = new List<string>();
+        public List<ThingDef> fermenterIngredients = new List<ThingDef>();
+        public bool processEditableNow = false;
+        public bool graphicChangeQueued = false;
+
+        protected float ruinedPercent;
+        
+        public CompRefuelable refuelComp;
+        public CompPowerTrader powerTradeComp;
+        public CompFlickable flickComp;
+
 
         public override IEnumerable<Gizmo> CompGetGizmosExtra()
         {
@@ -45,24 +66,9 @@ namespace UniversalFermenter
             // Switching products button (no button if only 1 resource)
             if (ProcessListSize > 1)
             {
-                yield return UF_Utility.productGizmos[CurrentProcess];
+                yield return UF_Utility.processGizmos[CurrentProcess];
             }
         }
-
-        private int ingredientCount;
-        private float progressInt;
-        private Material barFilledCachedMat;
-        public int nextResourceInd;
-        public int currentResourceInd;
-        private List<string> ingredientLabels = new List<string>();
-        public List<ThingDef> fermenterIngredients = new List<ThingDef>();
-
-        protected float ruinedPercent;
-
-        public string defaultTexPath;
-        public CompRefuelable refuelComp;
-        public CompPowerTrader powerTradeComp;
-        public CompFlickable flickComp;
 
         // Properties
 
@@ -84,6 +90,13 @@ namespace UniversalFermenter
             get
             {
                 return Props.processes[currentResourceInd];
+            }
+            set
+            {
+                if (Props.processes.Contains(value))
+                {
+                    currentResourceInd = Props.processes.IndexOf(value);
+                }
             }
         }
 
@@ -189,19 +202,6 @@ namespace UniversalFermenter
                 return CurrentProcess.maxCapacity - ingredientCount;
             }
         }
-
-        private void NextResource()
-        {
-            nextResourceInd++;
-            if (nextResourceInd >= ProcessListSize)
-                nextResourceInd = 0;
-            if (Empty)
-            {
-                currentResourceInd = nextResourceInd;
-            }
-        }
-
-
 
         private float CurrentTemperatureFactor
         {
@@ -410,7 +410,6 @@ namespace UniversalFermenter
             refuelComp = parent.GetComp<CompRefuelable>();
             powerTradeComp = parent.GetComp<CompPowerTrader>();
             flickComp = parent.GetComp<CompFlickable>();
-            defaultTexPath = parent.def.graphicData.texPath;
         }
 
         public override void PostExposeData()
@@ -420,7 +419,6 @@ namespace UniversalFermenter
             Scribe_Values.Look(ref progressInt, "UF_UniversalFermenter_Progress", 0f);
             Scribe_Values.Look(ref nextResourceInd, "UF_nextResourceInd", 0);
             Scribe_Values.Look(ref currentResourceInd, "UF_currentResourceInd", 0);
-            Scribe_Values.Look(ref defaultTexPath, "defaultTexPath");
             Scribe_Collections.Look(ref ingredientLabels, "UF_ingredientLabels");
         }
 
@@ -430,8 +428,14 @@ namespace UniversalFermenter
             if (!Empty)
             {
                 Vector3 drawPos = parent.DrawPos;
-                drawPos.y += 0.0483870953f;
-                drawPos.z += 0.25f;
+                drawPos.x += Props.barOffset.x;
+                drawPos.y += 0.05f;
+                drawPos.z += Props.barOffset.y;
+                //black border around progress bar
+                /*Vector3 s = new Vector3(Static_Bar.Size.x + 0.15f, 0f, Static_Bar.Size.y + 0.15f);
+                Matrix4x4 matrix = default(Matrix4x4);
+                matrix.SetTRS(drawPos + (Vector3.down * 0.01f), Rot4.North.AsQuat, s);
+                Graphics.DrawMesh(MeshPool.plane10, matrix, Static_Bar.BlackMat, 0);*/
                 GenDraw.DrawFillableBar(new GenDraw.FillableBarRequest
                 {
                     center = drawPos,
@@ -442,15 +446,20 @@ namespace UniversalFermenter
                     margin = 0.1f,
                     rotation = Rot4.North
                 });
+                if (graphicChangeQueued)
+                {
+                    GraphicChange(false);
+                    graphicChangeQueued = false;
+                }
             }
-            if (CurrentProcess != null && UF_Settings.showProductIconGlobal && Props.showProductIcon && ProcessListSize > 1)
+            if (CurrentProcess != null && UF_Settings.showProcessIconGlobal && Props.showProductIcon && ProcessListSize > 1)
             {
                 Vector3 drawPos = parent.DrawPos;
                 drawPos.y += 0.02f;
                 drawPos.z += 0.05f;
                 Matrix4x4 matrix = default(Matrix4x4);
-                matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(0.75f, 1f, 0.75f));
-                Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.productMaterials[CurrentProcess], 0);
+                matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(UF_Settings.processIconSize, 1f, UF_Settings.processIconSize));
+                Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.processMaterials[CurrentProcess], 0);
             }
         }
         
@@ -529,7 +538,7 @@ namespace UniversalFermenter
             string suffix = CurrentProcess.graphicSuffix;
             if (suffix != null)
             {
-                string texPath = defaultTexPath;
+                string texPath = parent.def.graphicData.texPath;
                 if (!toEmpty)
                 {
                     texPath += CurrentProcess.graphicSuffix;

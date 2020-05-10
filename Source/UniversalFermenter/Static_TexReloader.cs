@@ -13,8 +13,8 @@ namespace UniversalFermenter
 			typeof(Thing).GetField("graphicInt", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(t, graphic);
 			if (t.Map != null)
 			{
-				t.DirtyMapMesh(t.Map);
-			}
+				t.Map.mapDrawer.MapMeshDirty(t.Position, MapMeshFlag.Things);
+            }
 		}
 	}
 }
