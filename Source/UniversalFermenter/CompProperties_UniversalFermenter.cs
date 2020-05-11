@@ -11,6 +11,7 @@ namespace UniversalFermenter
         public List<UF_Process> processes = new List<UF_Process>();
         public bool showProductIcon = true;
         public Vector2 barOffset = new Vector2(0f, 0.25f);
+        public Vector2 productIconSize = new Vector2(1f, 1f);
 
         public CompProperties_UniversalFermenter()
 		{

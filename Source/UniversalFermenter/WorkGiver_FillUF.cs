@@ -25,7 +25,7 @@ namespace UniversalFermenter
             CompUniversalFermenter comp = t.Thing.TryGetComp<CompUniversalFermenter>();
             if (comp != null)
             {
-                return comp.CurrentProcess.maxCapacity - comp.SpaceLeftForIngredient;
+                return 1 / comp.SpaceLeftForIngredient;
             }
             return 0f;
         }

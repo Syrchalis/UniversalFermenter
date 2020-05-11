@@ -1,37 +1,62 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Patch>
-<!-- Removes normal fermenting barrel, because it has no use over the universal fermenting barrel -->
+<!-- Soft-removes normal fermenting barrel -->
 	<Operation Class="PatchOperationRemove">
 	  <xpath>*/ThingDef[defName = "FermentingBarrel"]/designationCategory</xpath>
 	</Operation>
 
-	<Operation Class="PatchOperationSequence">
-		<success>Always</success> 
-		<operations>
-			<li Class="PatchOperationTest">
-				<xpath>*/ThingDef[defName="UniversalFermenter"]</xpath>
-			</li>
-		
-			<li Class="PatchOperationRemove">
-				<xpath>*/ThingDef[defName="UniversalFermenter"]/costList/WoodLog</xpath>
-			</li>
-			
-			<li Class="PatchOperationRemove">
-				<xpath>*/ThingDef[defName="UniversalFermenter"]/constructEffect</xpath>
-			</li>
-			
-			<li Class="PatchOperationAdd">
-				<xpath>*/ThingDef[defName="UniversalFermenter"]</xpath>
-				<value>
-					<costStuffCount>30</costStuffCount>
-					<stuffCategories>
-						<li>Woody</li>
-					</stuffCategories>
-				</value>
-			</li>
-		</operations>
+	<!-- Allow Brewery to be made of stuff -->
+	<Operation Class="PatchOperationConditional">
+    <xpath>*/ThingDef[defName="Brewery"]/costList/WoodLog</xpath>
+    <match Class="PatchOperationRemove">
+			<xpath>*/ThingDef[defName="Brewery"]/costList/WoodLog</xpath>
+    </match>
   </Operation>
 
+	<Operation Class="PatchOperationConditional">
+    <xpath>*/ThingDef[defName="Brewery"]/constructEffect</xpath>
+    <match Class="PatchOperationRemove">
+			<xpath>*/ThingDef[defName="Brewery"]/constructEffect</xpath>
+    </match>
+  </Operation>
+	
+	<Operation Class="PatchOperationConditional">
+    <xpath>*/ThingDef[defName="Brewery"]/costStuffCount</xpath>
+    <nomatch Class="PatchOperationAdd">
+			<xpath>*/ThingDef[defName="Brewery"]</xpath>
+			<value>
+				<costStuffCount>120</costStuffCount>
+			</value>
+    </nomatch>
+		<match Class="PatchOperationReplace">
+			<xpath>*/ThingDef[defName="Brewery"]/costStuffCount</xpath>
+			<value>
+				<costStuffCount>120</costStuffCount>
+			</value>
+    </match>
+  </Operation>
+
+	<Operation Class="PatchOperationConditional">
+    <xpath>*/ThingDef[defName="Brewery"]/stuffCategories</xpath>
+    <nomatch Class="PatchOperationAdd">
+			<xpath>*/ThingDef[defName="Brewery"]</xpath>
+			<value>
+				<stuffCategories>
+					<li>Woody</li>
+				</stuffCategories>
+			</value>
+    </nomatch>
+		<match Class="PatchOperationReplace">
+			<xpath>*/ThingDef[defName="Brewery"]/stuffCategories</xpath>
+			<value>
+				<stuffCategories>
+					<li>Woody</li>
+				</stuffCategories>
+			</value>
+    </match>
+  </Operation>
+
+	<!-- checks for old namespace-->
 	<Operation Class="PatchOperationAttributeSet">
 		<success>Always</success>
 	  <xpath>*/ThingDef/comps/li[contains(@Class,'UniversalProcessors.CompProperties_UniversalFermenter')]</xpath>

@@ -124,14 +124,24 @@ namespace UniversalFermenter
                 int maxSummaryLength;
                 int lineLength = 60;
                 string summary = "";
-                for (int i = 0; i < ingredientLabels.Count; i++)
+                if (ingredientLabels.Count > 0)
                 {
-                    if (i == 0)
-                        summary += ingredientLabels[i];
-                    else
-                        summary += ", " + ingredientLabels[i];
+                    for (int i = 0; i < ingredientLabels.Count; i++)
+                    {
+                        if (i == 0)
+                        {
+                            summary += ingredientLabels[i];
+                        }
+                        else
+                        {
+                            summary += ", " + ingredientLabels[i];
+                        }
+                    }
                 }
-
+                else
+                {
+                    summary += CurrentProcess.ingredientFilter.Summary;
+                }
                 substractLength = ("Contains " + CurrentProcess.maxCapacity.ToString() + "/" + CurrentProcess.maxCapacity.ToString() + " ").Length;
                 maxSummaryLength = lineLength - substractLength;
                 return UF_Utility.VowelTrim(summary, maxSummaryLength);
@@ -458,14 +468,14 @@ namespace UniversalFermenter
                 drawPos.y += 0.02f;
                 drawPos.z += 0.05f;
                 Matrix4x4 matrix = default(Matrix4x4);
-                matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(UF_Settings.processIconSize, 1f, UF_Settings.processIconSize));
+                matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(UF_Settings.processIconSize * Props.productIconSize.x, 1f, UF_Settings.processIconSize * Props.productIconSize.y));
                 Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.processMaterials[CurrentProcess], 0);
             }
         }
         
         public bool AddIngredient(Thing ingredient)
         {
-            if (!CurrentProcess.ingredientFilter.Allows(ingredient))
+            if (ingredient == null || !CurrentProcess.ingredientFilter.Allows(ingredient))
             {
                 return false;
             }
@@ -620,7 +630,7 @@ namespace UniversalFermenter
             stringBuilder.AppendLine(StatusInfo());
 
             // 2nd line: "Contains xx/xx ingredient (product)"
-            if (!Empty && !Ruined)
+            if (!Ruined)
             {
                 if (Fermented)
                 {
