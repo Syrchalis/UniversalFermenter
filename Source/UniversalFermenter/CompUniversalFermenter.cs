@@ -627,8 +627,11 @@ namespace UniversalFermenter
             StringBuilder stringBuilder = new StringBuilder();
 
             // 1st line: "Temperature: xx C (Overheating/Freezing/Ideal/Safe)" or "Ruined by temperature"
-            stringBuilder.AppendLine(StatusInfo());
-
+            if (CurrentProcess.usesTemperature)
+            {
+                stringBuilder.AppendLine(StatusInfo());
+            }
+            
             // 2nd line: "Contains xx/xx ingredient (product)"
             if (!Ruined)
             {
@@ -669,19 +672,17 @@ namespace UniversalFermenter
             }
 
             // 5th line: "Ideal/safe temperature range"
-            stringBuilder.AppendLine(string.Concat(new string[]
+            if (CurrentProcess.usesTemperature)
             {
-                "UF_IdealSafeProductionTemperature".Translate(),
-                ": ",
-                CurrentProcess.temperatureIdeal.min.ToStringTemperature("F0"),
-                "~",
-                CurrentProcess.temperatureIdeal.max.ToStringTemperature("F0"),
-                " (",
-                CurrentProcess.temperatureSafe.min.ToStringTemperature("F0"),
-                "~",
-                CurrentProcess.temperatureSafe.max.ToStringTemperature("F0"),
-                ")"
-            }));
+                stringBuilder.AppendLine(string.Concat(new string[]
+                {
+                    "UF_IdealSafeProductionTemperature".Translate(),": ",
+                    CurrentProcess.temperatureIdeal.min.ToStringTemperature("F0"),"~",
+                    CurrentProcess.temperatureIdeal.max.ToStringTemperature("F0"), " (",
+                    CurrentProcess.temperatureSafe.min.ToStringTemperature("F0"), "~",
+                    CurrentProcess.temperatureSafe.max.ToStringTemperature("F0"), ")"
+                }));
+            }
 
             return stringBuilder.ToString().TrimEndNewlines();
         }

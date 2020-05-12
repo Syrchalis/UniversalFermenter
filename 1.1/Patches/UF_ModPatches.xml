@@ -224,4 +224,106 @@
 		</match>	
 	</Operation>
 
+	<!-- [1.1] Ceramics | n7huntsman.ceramics -->
+	<Operation Class="PatchOperationFindMod">
+		<mods>
+			<li>[1.1] Ceramics</li>
+		</mods>
+			<match Class="PatchOperationSequence">
+			<operations>
+				<li Class="PatchOperationRemove">
+					<xpath>*/ThingDef[defName = "Building_DryingRack"]/comps/li[@Class="CompProperties_TemperatureRuinable" or @Class="Ceramics.CompProperties_Processing"]</xpath>
+				</li>
+				<li Class="PatchOperationAdd">
+					<xpath>*/ThingDef[defName = "Building_DryingRack"]/comps</xpath>
+					<value>
+						<li Class="UniversalFermenter.CompProperties_UniversalFermenter">
+							<processes>
+								<li>
+									<thingDef>N7_DriedMudbrick</thingDef>
+									<ingredientFilter>
+										<thingDefs>
+											<li>N7_RawMudbrick</li>
+										</thingDefs>
+									</ingredientFilter>
+									<temperatureSafe>-1.0~60.0</temperatureSafe>
+									<temperatureIdeal>7.0~45.0</temperatureIdeal>
+									<maxCapacity>35</maxCapacity>
+									<processDays>0.67</processDays>
+								</li>
+							</processes>
+						</li>
+					</value>
+				</li>
+				<li Class="PatchOperationRemove">
+					<xpath>*/ThingDef[defName = "Building_PrimitiveKiln" or defName = "Building_BasicKiln" or defName = "Building_ElectricKiln"]/comps/li[@Class="Ceramics.CompProperties_Processing"]</xpath>
+				</li>
+				<li Class="PatchOperationAdd">
+					<xpath>*/ThingDef[defName = "Building_PrimitiveKiln"]/comps</xpath>
+					<value>
+						<li Class="UniversalFermenter.CompProperties_UniversalFermenter">
+							<processes>
+								<li>
+									<thingDef>N7_FiredBrick</thingDef>
+									<ingredientFilter>
+										<thingDefs>
+											<li>N7_UnfiredBrick</li>
+										</thingDefs>
+									</ingredientFilter>
+									<usesTemperature>false</usesTemperature>
+									<maxCapacity>30</maxCapacity>
+									<processDays>0.75</processDays>
+								</li>
+							</processes>
+						</li>
+					</value>
+				</li>
+				<li Class="PatchOperationAdd">
+					<xpath>*/ThingDef[defName = "Building_BasicKiln"]/comps</xpath>
+					<value>
+						<li Class="UniversalFermenter.CompProperties_UniversalFermenter">
+							<processes>
+								<li>
+									<thingDef>N7_FiredBrick</thingDef>
+									<ingredientFilter>
+										<thingDefs>
+											<li>N7_UnfiredBrick</li>
+										</thingDefs>
+									</ingredientFilter>
+									<usesTemperature>false</usesTemperature>
+									<maxCapacity>50</maxCapacity>
+									<processDays>0.67</processDays>
+								</li>
+							</processes>
+						</li>
+					</value>
+				</li>
+				<li Class="PatchOperationAdd">
+					<xpath>*/ThingDef[defName = "Building_ElectricKiln"]/comps</xpath>
+					<value>
+						<li Class="UniversalFermenter.CompProperties_UniversalFermenter">
+							<processes>
+								<li>
+									<thingDef>N7_FiredBrick</thingDef>
+									<ingredientFilter>
+										<thingDefs>
+											<li>N7_UnfiredBrick</li>
+										</thingDefs>
+									</ingredientFilter>
+									<usesTemperature>false</usesTemperature>
+									<maxCapacity>80</maxCapacity>
+									<processDays>0.57</processDays>
+								</li>
+							</processes>
+						</li>
+					</value>
+				</li>
+				<li Class="PatchOperationRemove">
+					<xpath>*/ThingDef[defName = "Building_DryingRack" or defName = "Building_PrimitiveKiln" or defName = "Building_BasicKiln" or defName = "Building_ElectricKiln"]/thingClass</xpath>
+				</li>
+			</operations>
+			</match>
+	</Operation>
+
+
 </Patch>
