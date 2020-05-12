@@ -325,5 +325,31 @@
 			</match>
 	</Operation>
 
-
+	<!-- RimBees | sarg.rimbees-->
+	<Operation Class="PatchOperationFindMod">
+		<mods>
+			<li>RimBees</li>
+		</mods>
+			<match Class="PatchOperationSequence">
+			<operations>
+				<li Class="PatchOperationAdd">
+				<xpath>*/ThingDef[defName = "UniversalFermenter"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes</xpath>
+					<value>
+						<li>
+							<thingDef>RB_Mead</thingDef>
+							<ingredientFilter>
+								<thingDefs>
+									<li>RB_Must</li>
+								</thingDefs>
+							</ingredientFilter>
+							<processDays>6</processDays>
+						</li>
+					</value>
+				</li>
+				<li Class="PatchOperationRemove">
+					<xpath>*/ThingDef[defName = "RB_MeadFermentingBarrel"]/designationCategory</xpath>
+				</li>
+			</operations>
+			</match>
+	</Operation>
 </Patch>
