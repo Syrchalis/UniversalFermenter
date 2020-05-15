@@ -117,7 +117,6 @@ namespace UniversalFermenter
                         {
                             comp.TargetQuality = quality;
                             comp.processEditableNow = false;
-                            Log.Message("ProgressPercent: " + comp.ProgressPercent);
                         }
                     }
                 }));
@@ -129,7 +128,7 @@ namespace UniversalFermenter
                     defaultLabel = quality.GetLabel().CapitalizeFirst(),
                     defaultDesc = "UF_SetQualityDesc".Translate(),
                     activateSound = SoundDefOf.Tick_Tiny,
-                    icon = ContentFinder<Texture2D>.Get("UI/QualityIcons/" + quality.GetLabel().CapitalizeFirst()),
+                    icon = ContentFinder<Texture2D>.Get("UI/QualityIcons/" + quality.ToString()),
                     action = () =>
                     {
                         FloatMenu floatMenu = new FloatMenu(qualityfloatMenuOptions)
