@@ -41,6 +41,8 @@
     <comps>
       <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
         <showProductIcon>true</showProductIcon>
+        <barOffset>(0.0, 0.25)</barOffset>
+        <barScale>(1.0, 1.0)</barScale>
         <processes>
           <li>
             <thingDef>Beer</thingDef>

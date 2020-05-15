@@ -28,6 +28,7 @@ namespace UniversalFermenter
             allUFProcesses.Clear();
             processGizmos.Clear();
             processMaterials.Clear();
+            qualityGizmos.Clear();
             foreach (ThingDef thingDef in DefDatabase<ThingDef>.AllDefs.Where(x => x.HasComp(typeof(CompUniversalFermenter)))) //we grab every thingDef that has the UF comp
             {
                 if (thingDef.comps.Find(c => c.compClass == typeof(CompUniversalFermenter)) is CompProperties_UniversalFermenter compUF)

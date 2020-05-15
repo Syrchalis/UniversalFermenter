@@ -415,7 +415,7 @@ namespace UniversalFermenter
                 GenDraw.DrawFillableBar(new GenDraw.FillableBarRequest
                 {
                     center = drawPos,
-                    size = Static_Bar.Size,
+                    size = Static_Bar.Size * Props.barScale,
                     fillPercent = ingredientCount / (float)CurrentProcess.maxCapacity,
                     filledMat = BarFilledMat,
                     unfilledMat = Static_Bar.UnfilledMat,
