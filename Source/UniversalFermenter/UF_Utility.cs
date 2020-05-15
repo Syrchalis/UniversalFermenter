@@ -16,6 +16,7 @@ namespace UniversalFermenter
         public static Dictionary<UF_Process, Command_Action> processGizmos = new Dictionary<UF_Process, Command_Action>();
         public static Dictionary<UF_Process, Material> processMaterials = new Dictionary<UF_Process, Material>();
         public static List<CompUniversalFermenter> comps = new List<CompUniversalFermenter>();
+        public static Dictionary<QualityCategory, Command_Action> qualityGizmos = new Dictionary<QualityCategory, Command_Action>();
 
         static UF_Utility()
         {
@@ -65,7 +66,7 @@ namespace UniversalFermenter
                         {
                             defaultLabel = process.thingDef.label,
                             defaultDesc = "UF_NextDesc".Translate(process.thingDef.label, IngredientFilterSummary(process.ingredientFilter)),
-                            activateSound = SoundDef.Named("Click"),
+                            activateSound = SoundDefOf.Tick_Tiny,
                             icon = GetIcon(process.thingDef, UF_Settings.singleItemIcon),
                             action = () =>
                             {
@@ -104,26 +105,67 @@ namespace UniversalFermenter
                 Material mat = MaterialPool.MatFrom(icon);
                 processMaterials.Add(process, mat);
             }
+            List<FloatMenuOption> qualityfloatMenuOptions = new List<FloatMenuOption>();
+            foreach (QualityCategory quality in Enum.GetValues(typeof(QualityCategory)))
+            {
+                qualityfloatMenuOptions.Add(new FloatMenuOption(quality.GetLabel(), delegate ()
+                {
+                    foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
+                    {
+                        CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
+                        if (comp != null && comp.processEditableNow)
+                        {
+                            comp.TargetQuality = quality;
+                            comp.processEditableNow = false;
+                            Log.Message("ProgressPercent: " + comp.ProgressPercent);
+                        }
+                    }
+                }));
+            }
+            foreach (QualityCategory quality in Enum.GetValues(typeof(QualityCategory)))
+            {
+                qualityGizmos.Add(quality, new Command_Action
+                {
+                    defaultLabel = quality.GetLabel().CapitalizeFirst(),
+                    defaultDesc = "UF_SetQualityDesc".Translate(),
+                    activateSound = SoundDefOf.Tick_Tiny,
+                    icon = ContentFinder<Texture2D>.Get("UI/QualityIcons/" + quality.GetLabel().CapitalizeFirst()),
+                    action = () =>
+                    {
+                        FloatMenu floatMenu = new FloatMenu(qualityfloatMenuOptions)
+                        {
+                            vanishIfMouseDistant = true,
+                            onCloseCallback = () => //when floatMenu is closed (e.g. by clicking outside or moving cursor far away) we set all bools to false so they don't remain true unnecessarily
+                            {
+                                foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
+                                {
+                                    CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
+                                    if (comp != null)
+                                    {
+                                        comp.processEditableNow = false;
+                                    }
+                                }
+                            }
+                        };
+                        Find.WindowStack.Add(floatMenu);
+                        foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>().Where(t => t.TryGetComp<CompUniversalFermenter>() is CompUniversalFermenter comp && comp.targetQuality == quality))
+                        {
+                            CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
+                            if (comp != null)
+                            {
+                                comp.processEditableNow = true;
+                            }
+                        }
+                    }
+                });
+            }
         }
 
-        public static void NextResource(CompUniversalFermenter comp)
-        {
-            comp.nextResourceInd++;
-            if (comp.nextResourceInd >= comp.ProcessListSize)
-            {
-                comp.nextResourceInd = 0;
-            }
-            if (comp.Empty)
-            {
-                comp.currentResourceInd = comp.nextResourceInd;
-            }
-        }
-        
         public static Command_Action DispSpeeds = new Command_Action()
         {
             defaultLabel = "DEBUG: Display Speed Factors",
             defaultDesc = "Display the current sun, rain, snow and wind speed factors and how much of the building is covered by roof.",
-            activateSound = SoundDef.Named("Click"),
+            activateSound = SoundDefOf.Tick_Tiny,
             action = () => 
             {
                 foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
@@ -144,7 +186,7 @@ namespace UniversalFermenter
         public static Command_Action DevFinish = new Command_Action()
         {
             defaultLabel = "DEBUG: Finish",
-            activateSound = SoundDef.Named("Click"),
+            activateSound = SoundDefOf.Tick_Tiny,
             action = () => 
             {
                 foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
@@ -152,7 +194,31 @@ namespace UniversalFermenter
                     CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
                     if (comp != null)
                     {
-                        comp.Progress = 1f;
+                        if (comp.CurrentProcess.usesQuality)
+                        {
+                            comp.progressTicks = Mathf.RoundToInt(comp.DaysToReachTargetQuality * GenDate.TicksPerDay);
+                        }
+                        else
+                        {
+                            comp.progressTicks = Mathf.RoundToInt(comp.CurrentProcess.processDays * GenDate.TicksPerDay);
+                        }
+                    }
+                }
+            },
+        };
+
+        public static Command_Action AgeOneDay = new Command_Action()
+        {
+            defaultLabel = "DEBUG: Age One Day",
+            activateSound = SoundDefOf.Tick_Tiny,
+            action = () =>
+            {
+                foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
+                {
+                    CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
+                    if (comp != null)
+                    {
+                        comp.DoTicks(GenDate.TicksPerDay);
                     }
                 }
             },

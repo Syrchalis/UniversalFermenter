@@ -15,5 +15,7 @@ namespace UniversalFermenter
         }
         public static JobDef FillUniversalFermenter;
         public static JobDef TakeProductOutOfUniversalFermenter;
+
+        public static ThingDef Goose;
     }
 }
