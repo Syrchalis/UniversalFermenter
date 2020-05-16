@@ -220,8 +220,159 @@
 						<texPath>Things/Building/Production/UF_Barrel</texPath>
 					</value>
 				</li>
+				<li Class="PatchOperationAdd">
+				<xpath>*/ThingDef[defName = "VG_LargeFermentingBarrel"]/graphicData</xpath>
+					<value>
+						<shaderType>CutoutComplex</shaderType>
+					</value>
+				</li>
+				<li Class="PatchOperationAdd">
+				<xpath>*/ThingDef[defName = "VG_LargeFermentingBarrel"]</xpath>
+					<value>
+						<thingClass>UniversalFermenter.Building_ColorCoded</thingClass>
+					</value>
+				</li>
 				<li Class="PatchOperationRemove">
 					<xpath>*/WorkGiverDef[defName = "VG_WorkGiver_TakeProductOutOfUniversalFermenter" or defName = "VG_WorkGiver_FillUniversalFermenter"]</xpath>
+				</li>
+				<li Class="PatchOperationFindMod">
+					<mods>
+						<li>VGP Vegetable Garden</li>
+					</mods>
+					<match Class="PatchOperationSequence">
+						<operations>
+							<li Class="PatchOperationAdd">
+							<xpath>*/ThingDef[defName = "UniversalFermenter"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes</xpath>
+								<value>
+									<li>
+										<thingDef>cider</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_CiderMust</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>30</maxCapacity>
+										<processDays>6</processDays>
+									</li>
+									<li>
+										<thingDef>Mead</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_MeadBase</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>40</maxCapacity>
+										<processDays>6</processDays>
+									</li>
+									<li>
+										<thingDef>Wine</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_GrapeMust</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>30</maxCapacity>
+										<processDays>10</processDays>
+									</li>
+									<li>
+										<thingDef>BrownAle</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_BrownMalt</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>30</maxCapacity>
+										<processDays>6</processDays>
+									</li>
+									<li>
+										<thingDef>KvassSoda</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_KvassSodaWort</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>30</maxCapacity>
+										<processDays>5</processDays>
+									</li>
+									<li>
+										<thingDef>VegetableKvass</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_VegKvassWort</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>30</maxCapacity>
+										<processDays>5</processDays>
+									</li>
+								</value>
+							</li>
+							<li Class="PatchOperationAdd">
+							<xpath>*/ThingDef[defName = "VG_LargeFermentingBarrel"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes</xpath>
+								<value>
+									<li>
+										<thingDef>cider</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_CiderMust</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>120</maxCapacity>
+										<processDays>5.5</processDays>
+									</li>
+									<li>
+										<thingDef>Mead</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_MeadBase</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>120</maxCapacity>
+										<processDays>6</processDays>
+									</li>
+									<li>
+										<thingDef>Wine</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_GrapeMust</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>120</maxCapacity>
+										<processDays>7.5</processDays>
+									</li>
+									<li>
+										<thingDef>BrownAle</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_BrownMalt</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>150</maxCapacity>
+										<processDays>5.5</processDays>
+									</li>
+									<li>
+										<thingDef>KvassSoda</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_KvassSodaWort</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>120</maxCapacity>
+										<processDays>3.75</processDays>
+									</li>
+									<li>
+										<thingDef>VegetableKvass</thingDef>
+										<ingredientFilter>
+												<thingDefs>
+														<li>VG_VegKvassWort</li>
+												</thingDefs>
+										</ingredientFilter>
+										<maxCapacity>120</maxCapacity>
+										<processDays>3.75</processDays>
+									</li>
+								</value>
+							</li>
+						</operations>
+					</match>
 				</li>
 			</operations>
 		</match>	
