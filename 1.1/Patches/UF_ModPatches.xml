@@ -470,4 +470,37 @@
 			</match>
 	</Operation>
 
+<!-- Vanilla Factions Expanded - Settlers | OskarPotocki.VanillaFactionsExpanded.SettlersModule -->
+	<Operation Class="PatchOperationFindMod">
+		<mods>
+			<li>Vanilla Factions Expanded - Settlers</li>
+		</mods>
+			<match Class="PatchOperationSequence">
+			<operations>
+				<li Class="PatchOperationRemove">
+					<xpath>*/ThingDef[defName = "Building_ChemshineBarrel"]/designationCategory</xpath>
+				</li>
+				<li Class="PatchOperationAdd">
+				<xpath>*/ThingDef[defName = "UniversalFermenter"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes</xpath>
+					<value>
+						<li>
+							<thingDef>Chemshine</thingDef>
+							<ingredientFilter>
+								<thingDefs>
+									<li>Chemfuel</li>
+								</thingDefs>
+							</ingredientFilter>
+							<processDays>3</processDays>
+							<maxCapacity>50</maxCapacity>
+							<efficiency>0.5</efficiency>
+						</li>
+					</value>
+				</li>
+				<li Class="PatchOperationRemove">
+					<xpath>*/WorkGiverDef[defName = "TakeChemshineOutOfChemshineBarrel" or defName = "FillChemshineBarrel"]</xpath>
+				</li>
+			</operations>
+			</match>
+	</Operation>
+
 </Patch>

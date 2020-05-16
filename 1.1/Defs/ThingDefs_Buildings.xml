@@ -7,7 +7,7 @@
     <description>A barrel for fermenting various things into other products.</description>
     <thingClass>UniversalFermenter.Building_ColorCoded</thingClass>
     <graphicData>
-      <texPath>Things/Building/Production/FermentingBarrel</texPath>
+      <texPath>Things/Building/Production/UF_Barrel</texPath>
       <graphicClass>Graphic_Multi</graphicClass>
       <shaderType>CutoutComplex</shaderType>
       <damageData>
