@@ -265,16 +265,6 @@
 										<processDays>6</processDays>
 									</li>
 									<li>
-										<thingDef>Wine</thingDef>
-										<ingredientFilter>
-												<thingDefs>
-														<li>VG_GrapeMust</li>
-												</thingDefs>
-										</ingredientFilter>
-										<maxCapacity>30</maxCapacity>
-										<processDays>10</processDays>
-									</li>
-									<li>
 										<thingDef>BrownAle</thingDef>
 										<ingredientFilter>
 												<thingDefs>
@@ -330,16 +320,6 @@
 										<processDays>6</processDays>
 									</li>
 									<li>
-										<thingDef>Wine</thingDef>
-										<ingredientFilter>
-												<thingDefs>
-														<li>VG_GrapeMust</li>
-												</thingDefs>
-										</ingredientFilter>
-										<maxCapacity>120</maxCapacity>
-										<processDays>7.5</processDays>
-									</li>
-									<li>
 										<thingDef>BrownAle</thingDef>
 										<ingredientFilter>
 												<thingDefs>
@@ -371,11 +351,50 @@
 									</li>
 								</value>
 							</li>
+							<li Class="PatchOperationFindMod">
+								<mods>
+									<li>Vanilla Factions Expanded - Medieval</li>
+								</mods>
+								<nomatch Class="PatchOperationSequence">
+									<operations>
+										<li Class="PatchOperationAdd">
+										<xpath>*/ThingDef[defName = "UniversalFermenter"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes</xpath>
+											<value>
+												<li>
+													<thingDef>Wine</thingDef>
+													<ingredientFilter>
+															<thingDefs>
+																	<li>VG_GrapeMust</li>
+															</thingDefs>
+													</ingredientFilter>
+													<maxCapacity>30</maxCapacity>
+													<processDays>10</processDays>
+												</li>
+											</value>
+										</li>
+										<li Class="PatchOperationAdd">
+										<xpath>*/ThingDef[defName = "VG_LargeFermentingBarrel"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes</xpath>
+											<value>
+												<li>
+													<thingDef>Wine</thingDef>
+													<ingredientFilter>
+															<thingDefs>
+																	<li>VG_GrapeMust</li>
+															</thingDefs>
+													</ingredientFilter>
+													<maxCapacity>120</maxCapacity>
+													<processDays>7.5</processDays>
+												</li>
+											</value>
+										</li>
+									</operations>
+								</nomatch>
+							</li>
 						</operations>
 					</match>
 				</li>
 			</operations>
-		</match>	
+		</match>
 	</Operation>
 
 	<!-- [1.1] Ceramics | n7huntsman.ceramics -->
