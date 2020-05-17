@@ -17,11 +17,13 @@ namespace UniversalFermenter
         public static Dictionary<UF_Process, Material> processMaterials = new Dictionary<UF_Process, Material>();
         public static List<CompUniversalFermenter> comps = new List<CompUniversalFermenter>();
         public static Dictionary<QualityCategory, Command_Action> qualityGizmos = new Dictionary<QualityCategory, Command_Action>();
+        public static UF_Process currentGizmoProcess = null;
+        public static QualityCategory currentQualityCategory = QualityCategory.Normal;
 
         static UF_Utility()
         {
             CheckForErrors();
-            CacheDictionaries();
+            RecacheAll();
         }
 
         public static void CheckForErrors()
@@ -53,12 +55,17 @@ namespace UniversalFermenter
             }
         }
 
-        public static void CacheDictionaries() //Gets called in constructor and in writeSettings
+        public static void RecacheAll() //Gets called in constructor and in writeSettings
+        {
+            RecacheProcessGizmos();
+            RecacheProcessMaterials();
+            RecacheQualityGizmos();
+        }
+
+        public static void RecacheProcessGizmos()
         {
             allUFProcesses.Clear();
             processGizmos.Clear();
-            processMaterials.Clear();
-            qualityGizmos.Clear();
             foreach (ThingDef thingDef in DefDatabase<ThingDef>.AllDefs.Where(x => x.HasComp(typeof(CompUniversalFermenter)))) //we grab every thingDef that has the UF comp
             {
                 if (thingDef.comps.Find(c => c.compClass == typeof(CompUniversalFermenter)) is CompProperties_UniversalFermenter compUF)
@@ -72,13 +79,13 @@ namespace UniversalFermenter
                             foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>().Where(t => t.def == thingDef)) //we only want things that are of the current thingDef, otherwise other things with this comp try to switch their process
                             {
                                 CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                                if (comp != null && comp.processEditableNow)
+                                if (comp != null && comp.CurrentProcess == currentGizmoProcess)
                                 {
                                     comp.CurrentProcess = process;
                                     thing.Notify_ColorChanged();
-                                    comp.processEditableNow = false;
                                 }
                             }
+                            currentGizmoProcess = null;
                         }, GetIcon(process.thingDef, UF_Settings.singleItemIcon), Color.white, MenuOptionPriority.Default, null, null, 0f, null, null));
                     }
                     if (UF_Settings.sortAlphabetically)
@@ -98,38 +105,34 @@ namespace UniversalFermenter
                                 FloatMenu floatMenu = new FloatMenu(floatMenuOptions)
                                 {
                                     vanishIfMouseDistant = true,
-                                    onCloseCallback = () => //when floatMenu is closed (e.g. by clicking outside or moving cursor far away) we set all bools to false so they don't remain true unnecessarily
+                                    onCloseCallback = () =>
                                     {
-                                        foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>().Where(t => t.def == thingDef))
-                                        {
-                                            CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                                            if (comp != null)
-                                            {
-                                                comp.processEditableNow = false;
-                                            }
-                                        }
+                                        currentGizmoProcess = null;
                                     }
                                 };
                                 Find.WindowStack.Add(floatMenu);
-                                foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>().Where(t => t.def == thingDef)) //we set bool to true so only the processes that match the gizmo get changed
-                                {
-                                    CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                                    if (comp != null && comp.CurrentProcess == process)
-                                    {
-                                        comp.processEditableNow = true;
-                                    }
-                                }
+                                currentGizmoProcess = process;
                             },
                         });
                     }
                 }
             }
+        }
+
+        public static void RecacheProcessMaterials()
+        {
+            processMaterials.Clear();
             foreach (UF_Process process in allUFProcesses)
             {
                 Texture2D icon = GetIcon(process.thingDef, UF_Settings.singleItemIcon);
                 Material mat = MaterialPool.MatFrom(icon);
                 processMaterials.Add(process, mat);
             }
+        }
+
+        public static void RecacheQualityGizmos()
+        {
+            qualityGizmos.Clear();
             List<FloatMenuOption> qualityfloatMenuOptions = new List<FloatMenuOption>();
             foreach (QualityCategory quality in Enum.GetValues(typeof(QualityCategory)))
             {
@@ -138,12 +141,12 @@ namespace UniversalFermenter
                     foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
                     {
                         CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                        if (comp != null && comp.processEditableNow)
+                        if (comp != null && comp.CurrentProcess.usesQuality && comp.targetQuality == currentQualityCategory)
                         {
                             comp.TargetQuality = quality;
-                            comp.processEditableNow = false;
                         }
                     }
+                    currentQualityCategory = QualityCategory.Normal;
                 }));
             }
             foreach (QualityCategory quality in Enum.GetValues(typeof(QualityCategory)))
@@ -159,27 +162,13 @@ namespace UniversalFermenter
                         FloatMenu floatMenu = new FloatMenu(qualityfloatMenuOptions)
                         {
                             vanishIfMouseDistant = true,
-                            onCloseCallback = () => //when floatMenu is closed (e.g. by clicking outside or moving cursor far away) we set all bools to false so they don't remain true unnecessarily
+                            onCloseCallback = () =>
                             {
-                                foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
-                                {
-                                    CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                                    if (comp != null)
-                                    {
-                                        comp.processEditableNow = false;
-                                    }
-                                }
+                                currentQualityCategory = QualityCategory.Normal;
                             }
                         };
                         Find.WindowStack.Add(floatMenu);
-                        foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>().Where(t => t.TryGetComp<CompUniversalFermenter>() is CompUniversalFermenter comp && comp.targetQuality == quality))
-                        {
-                            CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                            if (comp != null)
-                            {
-                                comp.processEditableNow = true;
-                            }
-                        }
+                        currentQualityCategory = quality;
                     }
                 });
             }

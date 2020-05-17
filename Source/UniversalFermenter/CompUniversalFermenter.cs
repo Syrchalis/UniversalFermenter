@@ -17,12 +17,11 @@ namespace UniversalFermenter
         private Material barFilledCachedMat;
         public int currentProcessIndex;
         public int queuedProcessIndex;
-        public QualityCategory targetQuality;
+        public QualityCategory targetQuality = QualityCategory.Normal;
 
         private int ingredientCount;
         private List<string> ingredientLabels = new List<string>();
         public List<ThingDef> inputIngredients = new List<ThingDef>();
-        public bool processEditableNow = false;
         public bool graphicChangeQueued = false;
 
         public CompRefuelable refuelComp;

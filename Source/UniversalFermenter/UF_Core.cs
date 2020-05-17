@@ -48,7 +48,7 @@ namespace UniversalFermenter
         public override void WriteSettings()
         {
             base.WriteSettings();
-            UF_Utility.CacheDictionaries();
+            UF_Utility.RecacheAll();
         }
     }
 
