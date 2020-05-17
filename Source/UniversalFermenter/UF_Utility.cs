@@ -20,7 +20,37 @@ namespace UniversalFermenter
 
         static UF_Utility()
         {
+            CheckForErrors();
             CacheDictionaries();
+        }
+
+        public static void CheckForErrors()
+        {
+            bool sendWarning = false;
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.AppendLine("<-- Universal Fermenter Errors -->");
+            foreach (ThingDef thingDef in DefDatabase<ThingDef>.AllDefs.Where(x => x.HasComp(typeof(CompUniversalFermenter)))) //we grab every thingDef that has the UF comp
+            {
+                if (thingDef.comps.Find(c => c.compClass == typeof(CompUniversalFermenter)) is CompProperties_UniversalFermenter compUF)
+                {
+                    if (!compUF.products.NullOrEmpty()) //if anyone uses the outdated "products" field we log a warning and copy the list to processes
+                    {
+                        stringBuilder.AppendLine("Universal Fermenter: ThingDef '" + thingDef.defName + "' uses outdated field 'products', please rename to 'processes'.");
+                        compUF.processes.AddRange(compUF.products);
+                        sendWarning = true;
+                    }
+                    if (compUF.processes.Any(p => p.thingDef == null || p.ingredientFilter.AllowedThingDefs.EnumerableNullOrEmpty()))
+                    {
+                        stringBuilder.AppendLine("ThingDef '" + thingDef.defName + "' has processes with no product or no filter. These fields are required.");
+                        compUF.processes.RemoveAll(p => p.thingDef == null || p.ingredientFilter.AllowedThingDefs.EnumerableNullOrEmpty());
+                        sendWarning = true;
+                    }
+                }
+            }
+            if (sendWarning)
+            {
+                Log.Warning(stringBuilder.ToString().TrimEndNewlines());
+            }
         }
 
         public static void CacheDictionaries() //Gets called in constructor and in writeSettings
@@ -33,13 +63,7 @@ namespace UniversalFermenter
             {
                 if (thingDef.comps.Find(c => c.compClass == typeof(CompUniversalFermenter)) is CompProperties_UniversalFermenter compUF)
                 {
-                    if (!compUF.products.NullOrEmpty()) //if anyone uses the outdated "products" field we log a warning and copy the list to processes
-                    {
-                        Log.Warning("Universal Fermenter: ThingDef " + thingDef.defName + " uses outdated field 'products', please rename to 'processes'.");
-                        compUF.processes.AddRange(compUF.products);
-                    }
                     allUFProcesses.AddRange(compUF.processes); //adds the processes to a list so we have a full list of all processes
-
                     List<FloatMenuOption> floatMenuOptions = new List<FloatMenuOption>();
                     foreach (UF_Process process in compUF.processes) //we grab every process from the current thingDef and make a float menu option for it
                     {
