@@ -36,6 +36,19 @@ namespace UniversalFermenter
         public bool Empty => ingredientCount <= 0;
         public bool Fermented => !Empty && ProgressPercent >= 1f;
         public int SpaceLeftForIngredient => Fermented ? 0 : CurrentProcess.maxCapacity - ingredientCount;
+        public int ProgressTicks
+        {
+            get => progressTicks;
+            set
+            {
+                if (value == progressTicks)
+                {
+                    return;
+                }
+                progressTicks = value;
+                barFilledCachedMat = null;
+            }
+        }
         public float ProgressDays => (float)progressTicks / GenDate.TicksPerDay;
         public float ProgressPercent
         {
@@ -58,6 +71,10 @@ namespace UniversalFermenter
                     if (Empty)
                     {
                         currentProcessIndex = Props.processes.IndexOf(value);
+                        if (!value.usesQuality)
+                        {
+                            TargetQuality = QualityCategory.Normal;
+                        }
                     }
                     queuedProcessIndex = Props.processes.IndexOf(value);
                 }
@@ -398,7 +415,7 @@ namespace UniversalFermenter
             }
             if (CurrentProcess.usesQuality)
             {
-                yield return UF_Utility.qualityGizmos[targetQuality];
+                yield return UF_Utility.qualityGizmos[TargetQuality];
             }
         }
 
@@ -407,8 +424,14 @@ namespace UniversalFermenter
             base.PostDraw();
             if (!Empty)
             {
+                if (graphicChangeQueued)
+                {
+                    GraphicChange(false);
+                    graphicChangeQueued = false;
+                }
+                bool showCurrentQuality = CurrentProcess.usesQuality && UF_Settings.showCurrentQualityIcon;
                 Vector3 drawPos = parent.DrawPos;
-                drawPos.x += Props.barOffset.x;
+                drawPos.x += Props.barOffset.x - (showCurrentQuality ? 0.1f : 0f);
                 drawPos.y += 0.05f;
                 drawPos.z += Props.barOffset.y;
                 GenDraw.DrawFillableBar(new GenDraw.FillableBarRequest
@@ -421,20 +444,45 @@ namespace UniversalFermenter
                     margin = 0.1f,
                     rotation = Rot4.North
                 });
-                if (graphicChangeQueued)
+                if (showCurrentQuality) // show small icon for current quality over bar
                 {
-                    GraphicChange(false);
-                    graphicChangeQueued = false;
+                    drawPos.y += 0.02f;
+                    drawPos.x += 0.45f * Props.barScale.x;
+                    Matrix4x4 matrix2 = default(Matrix4x4);
+                    matrix2.SetTRS(drawPos, Quaternion.identity, new Vector3(0.2f * Props.barScale.x, 1f, 0.2f * Props.barScale.y));
+                    Graphics.DrawMesh(MeshPool.plane10, matrix2, UF_Utility.qualityMaterials[CurrentQuality], 0);
                 }
             }
-            if (CurrentProcess != null && UF_Settings.showProcessIconGlobal && Props.showProductIcon && Props.processes.Count > 1)
+            if (CurrentProcess != null && UF_Settings.showProcessIconGlobal && Props.showProductIcon)
             {
                 Vector3 drawPos = parent.DrawPos;
-                drawPos.y += 0.02f;
-                drawPos.z += 0.05f;
-                Matrix4x4 matrix = default(Matrix4x4);
-                matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(UF_Settings.processIconSize * Props.productIconSize.x, 1f, UF_Settings.processIconSize * Props.productIconSize.y));
-                Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.processMaterials[CurrentProcess], 0);
+                float sizeX = UF_Settings.processIconSize * Props.productIconSize.x;
+                float sizeZ = UF_Settings.processIconSize * Props.productIconSize.y;
+                if (Props.processes.Count == 1 && CurrentProcess.usesQuality) // show larger, centered quality icon if object has only one process
+                {
+                    drawPos.y += 0.02f;
+                    drawPos.z += 0.05f;
+                    Matrix4x4 matrix = default(Matrix4x4);
+                    matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(0.6f * sizeX, 1f, 0.6f * sizeZ));
+                    Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.qualityMaterials[TargetQuality], 0);
+                }
+                else if (Props.processes.Count > 1) // show process icon if object has more than one process
+                {
+                    drawPos.y += 0.02f;
+                    drawPos.z += 0.05f;
+                    Matrix4x4 matrix = default(Matrix4x4);
+                    matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(sizeX, 1f, sizeZ));
+                    Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.processMaterials[CurrentProcess], 0);
+                    if (CurrentProcess.usesQuality && UF_Settings.showTargetQualityIcon) // show small offset quality icon if object also uses quality
+                    {
+                        drawPos.y += 0.01f;
+                        drawPos.x += 0.25f * sizeX;
+                        drawPos.z -= 0.35f * sizeZ;
+                        Matrix4x4 matrix2 = default(Matrix4x4);
+                        matrix2.SetTRS(drawPos, Quaternion.identity, new Vector3(0.4f * sizeX, 1f, 0.4f * sizeZ));
+                        Graphics.DrawMesh(MeshPool.plane10, matrix2, UF_Utility.qualityMaterials[TargetQuality], 0);
+                    }
+                }
             }
         }
 
@@ -545,8 +593,7 @@ namespace UniversalFermenter
         {
             if (!Empty && Fueled && Powered && FlickedOn)
             {
-                progressTicks += Mathf.RoundToInt(ticks * CurrentSpeedFactor);
-                barFilledCachedMat = null;
+                ProgressTicks += Mathf.RoundToInt(ticks * CurrentSpeedFactor);
             }
             if (!Ruined)
             {
@@ -655,7 +702,7 @@ namespace UniversalFermenter
             inputIngredients.Clear();
             ingredientLabels.Clear();
             GraphicChange(true);
-            currentProcessIndex = queuedProcessIndex;
+            CurrentProcess = Props.processes[queuedProcessIndex];
         }
 
         public void GraphicChange(bool toEmpty)

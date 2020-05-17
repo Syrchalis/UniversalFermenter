@@ -29,6 +29,10 @@ namespace UniversalFermenter
                 listing_Standard.Label("UF_ProcessIconSize".Translate() +  ": " + UF_Settings.processIconSize.ToStringByStyle(ToStringStyle.PercentZero), -1, "UF_ProcessIconSizeTooltip".Translate());
                 UF_Settings.processIconSize = listing_Standard.Slider(GenMath.RoundTo(UF_Settings.processIconSize, 0.05f), 0.2f, 1f);
                 listing_Standard.Gap(12);
+                listing_Standard.CheckboxLabeled("UF_ShowCurrentQualityIcon".Translate(), ref UF_Settings.showCurrentQualityIcon, "UF_ShowCurrentQualityIconTooltip".Translate());
+                listing_Standard.Gap(12);
+                listing_Standard.CheckboxLabeled("UF_ShowTargetQualityIcon".Translate(), ref UF_Settings.showTargetQualityIcon, "UF_ShowTargetQualityTooltip".Translate());
+                listing_Standard.Gap(24);
                 listing_Standard.CheckboxLabeled("UF_SingleItemIcon".Translate(), ref UF_Settings.singleItemIcon, "UF_SingleItemIconTooltip".Translate());
                 listing_Standard.Gap(12);
                 listing_Standard.CheckboxLabeled("UF_SortAlphabetically".Translate(), ref UF_Settings.sortAlphabetically, "UF_SortAlphabeticallyTooltip".Translate());
@@ -56,6 +60,8 @@ namespace UniversalFermenter
     {
         public static bool showProcessIconGlobal = true;
         public static float processIconSize = 0.6f;
+        public static bool showCurrentQualityIcon = true;
+        public static bool showTargetQualityIcon = false;
         public static bool singleItemIcon = true;
         public static bool sortAlphabetically = false;
         public override void ExposeData()
@@ -63,6 +69,8 @@ namespace UniversalFermenter
             base.ExposeData();
             Scribe_Values.Look<bool>(ref showProcessIconGlobal, "UF_showProcessIconGlobal", true, true);
             Scribe_Values.Look<float>(ref processIconSize, "UF_processIconSize", 0.6f, true);
+            Scribe_Values.Look<bool>(ref showCurrentQualityIcon, "UF_showCurrentQualityIcon", true, true);
+            Scribe_Values.Look<bool>(ref showTargetQualityIcon, "UF_showTargetQualityIcon", false, true);
             Scribe_Values.Look<bool>(ref singleItemIcon, "UF_singleItemIcon", true, true);
             Scribe_Values.Look<bool>(ref sortAlphabetically, "UF_sortAlphabetically", false, true);
         }

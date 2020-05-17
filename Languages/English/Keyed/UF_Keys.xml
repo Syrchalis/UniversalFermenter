@@ -7,6 +7,10 @@
 	<UF_ShowProcessIconTooltip>If enabled allows showing of process icon on buildings that have it enabled, otherwise will never show icons on buildings (default: true)</UF_ShowProcessIconTooltip>
 	<UF_ProcessIconSize>Process icon size</UF_ProcessIconSize>
 	<UF_ProcessIconSizeTooltip>Sets the size for the process icon that is shown on some processing buildings (default: 60%)</UF_ProcessIconSizeTooltip>
+	<UF_ShowCurrentQualityIcon>Show current quality icon</UF_ShowCurrentQualityIcon>
+	<UF_ShowCurrentQualityIconTooltip>Shows an icon next to the progress bar that indicates the current quality of the product (default: true)</UF_ShowCurrentQualityIconTooltip>
+	<UF_ShowTargetQualityIcon>Show target quality icon</UF_ShowTargetQualityIcon>
+	<UF_ShowTargetQualityIconTooltip>Shows an icon next to the process icon that indicates the target quality set, only works if 'show process icon' is true (default: false)</UF_ShowTargetQualityIconTooltip>
 	<UF_SingleItemIcon>Single item icon</UF_SingleItemIcon>
 	<UF_SingleItemIconTooltip>If enabled will use icons that resemble a single item, otherwise will use icons that resemble a full stack (default: true)</UF_SingleItemIconTooltip>
 	<UF_SortAlphabetically>Sort list alphabetically</UF_SortAlphabetically>
