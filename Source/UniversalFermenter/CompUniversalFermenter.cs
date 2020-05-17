@@ -390,6 +390,7 @@ namespace UniversalFermenter
             Scribe_Values.Look(ref ingredientCount, "UF_UniversalFermenter_IngredientCount", 0);
             Scribe_Values.Look(ref progressTicks, "UF_progressTicks", 0);
             Scribe_Values.Look(ref currentProcessIndex, "UF_currentResourceInd", 0);
+            Scribe_Values.Look(ref queuedProcessIndex, "UF_queuedProcessIndex", 0);
             Scribe_Values.Look(ref targetQuality, "targetQuality", QualityCategory.Normal);
             Scribe_Collections.Look(ref ingredientLabels, "UF_ingredientLabels");
         }
