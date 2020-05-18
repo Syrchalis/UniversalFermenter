@@ -8,7 +8,9 @@ namespace UniversalFermenter
 {
 	public class UF_Process
 	{
-		public ThingDef thingDef;
+        public int uniqueID; //mainly for multiplayer
+
+        public ThingDef thingDef;
 		public ThingFilter ingredientFilter = new ThingFilter();
 
         public bool usesTemperature = true;

@@ -29,7 +29,6 @@ namespace UniversalFermenter
                             if (comp != null && comp.CurrentProcess == processToTarget)
                             {
                                 comp.CurrentProcess = process;
-                                thing.Notify_ColorChanged();
                             }
                         }
                     }, UF_Utility.GetIcon(process.thingDef, UF_Settings.singleItemIcon), Color.white, MenuOptionPriority.Default, null, null, 0f, null, null));

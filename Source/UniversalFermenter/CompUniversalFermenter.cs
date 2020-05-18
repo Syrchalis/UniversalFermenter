@@ -75,6 +75,10 @@ namespace UniversalFermenter
                         {
                             TargetQuality = QualityCategory.Normal;
                         }
+                        if (value.colorCoded)
+                        {
+                            parent.Notify_ColorChanged();
+                        }
                     }
                     queuedProcessIndex = Props.processes.IndexOf(value);
                 }

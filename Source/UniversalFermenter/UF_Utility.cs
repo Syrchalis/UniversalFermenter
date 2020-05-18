@@ -15,7 +15,7 @@ namespace UniversalFermenter
     {
         public static List<CompUniversalFermenter> comps = new List<CompUniversalFermenter>();
 
-        public static List<UF_Process> allUFProcesses = new List<UF_Process>();
+        public static Dictionary<int, UF_Process> allUFProcesses = new Dictionary<int, UF_Process>();
 
         public static Dictionary<UF_Process, Command_Action> processGizmos = new Dictionary<UF_Process, Command_Action>();
         public static Dictionary<QualityCategory, Command_Action> qualityGizmos = new Dictionary<QualityCategory, Command_Action>();
@@ -26,6 +26,7 @@ namespace UniversalFermenter
         static UF_Utility()
         {
             CheckForErrors();
+            CacheAllProcesses();
             RecacheAll();
         }
 
@@ -65,15 +66,43 @@ namespace UniversalFermenter
             RecacheQualityGizmos();
         }
 
+        private static void CacheAllProcesses()
+        {
+            List<UF_Process> tempProcessList = new List<UF_Process>();
+            foreach (ThingDef thingDef in DefDatabase<ThingDef>.AllDefs.Where(x => x.HasComp(typeof(CompUniversalFermenter))))
+            {
+                if (thingDef.comps.Find(c => c.compClass == typeof(CompUniversalFermenter)) is CompProperties_UniversalFermenter compUF)
+                {
+                    tempProcessList.AddRange(compUF.processes);
+                }
+            }
+            for (int i = 0; i < tempProcessList.Count; i++)
+            {
+                tempProcessList[i].uniqueID = i;
+                allUFProcesses.Add(i, tempProcessList[i]);
+            }
+#if DEBUG
+            StringBuilder stringBuilder = new StringBuilder();
+            foreach (KeyValuePair<int, UF_Process> keyValuePair in allUFProcesses)
+            {
+                StringBuilder stringBuilder2 = stringBuilder;
+                int key = keyValuePair.Key;
+                string str = key.ToString();
+                string str2 = ": ";
+                string value = keyValuePair.Value.thingDef.defName;
+                stringBuilder2.AppendLine(str + str2 + value);
+            }
+            Log.Message("Processes: \n" + stringBuilder);
+#endif
+        }
+
         public static void RecacheProcessGizmos()
         {
-            allUFProcesses.Clear();
             processGizmos.Clear();
             foreach (ThingDef thingDef in DefDatabase<ThingDef>.AllDefs.Where(x => x.HasComp(typeof(CompUniversalFermenter)))) //we grab every thingDef that has the UF comp
             {
                 if (thingDef.comps.Find(c => c.compClass == typeof(CompUniversalFermenter)) is CompProperties_UniversalFermenter compUF)
                 {
-                    allUFProcesses.AddRange(compUF.processes); //adds the processes to a list so we have a full list of all processes
                     foreach (UF_Process process in compUF.processes) //we loop again to make a gizmo for each process, now that we have a complete FloatMenuOption list
                     {
                         Command_Process command_Process = new Command_Process
@@ -103,7 +132,7 @@ namespace UniversalFermenter
         public static void RecacheProcessMaterials()
         {
             processMaterials.Clear();
-            foreach (UF_Process process in allUFProcesses)
+            foreach (UF_Process process in allUFProcesses.Values)
             {
                 Texture2D icon = GetIcon(process.thingDef, UF_Settings.singleItemIcon);
                 Material mat = MaterialPool.MatFrom(icon);
@@ -266,47 +295,6 @@ namespace UniversalFermenter
 
             return floatMenuOptions;
         }
-
-        public static Command_Action DevFinish = new Command_Action()
-        {
-            defaultLabel = "DEBUG: Finish",
-            activateSound = SoundDefOf.Tick_Tiny,
-            action = () => 
-            {
-                foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
-                {
-                    CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                    if (comp != null)
-                    {
-                        if (comp.CurrentProcess.usesQuality)
-                        {
-                            comp.ProgressTicks = Mathf.RoundToInt(comp.DaysToReachTargetQuality * GenDate.TicksPerDay);
-                        }
-                        else
-                        {
-                            comp.ProgressTicks = Mathf.RoundToInt(comp.CurrentProcess.processDays * GenDate.TicksPerDay);
-                        }
-                    }
-                }
-            },
-        };
-
-        public static Command_Action AgeOneDay = new Command_Action()
-        {
-            defaultLabel = "DEBUG: Age One Day",
-            activateSound = SoundDefOf.Tick_Tiny,
-            action = () =>
-            {
-                foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
-                {
-                    CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                    if (comp != null)
-                    {
-                        comp.ProgressTicks += GenDate.TicksPerDay;
-                    }
-                }
-            },
-        };
 
         public static string IngredientFilterSummary(ThingFilter thingFilter)
         {
