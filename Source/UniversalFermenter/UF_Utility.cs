@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using RimWorld;
 using Verse;
+using Verse.Sound;
 
 namespace UniversalFermenter
 {
@@ -79,7 +80,7 @@ namespace UniversalFermenter
                         {
                             defaultLabel = process.thingDef.label,
                             defaultDesc = "UF_NextDesc".Translate(process.thingDef.label, IngredientFilterSummary(process.ingredientFilter)),
-                            activateSound = SoundDefOf.Tick_Tiny,
+                            //activateSound = SoundDefOf.Tick_Tiny,
                             icon = GetIcon(process.thingDef, UF_Settings.singleItemIcon),
                             processToTarget = process,
                             processOptions = compUF.processes
@@ -126,7 +127,7 @@ namespace UniversalFermenter
                 {
                     defaultLabel = quality.GetLabel().CapitalizeFirst(),
                     defaultDesc = "UF_SetQualityDesc".Translate(),
-                    activateSound = SoundDefOf.Tick_Tiny,
+                    //activateSound = SoundDefOf.Tick_Tiny,
                     icon = (Texture2D)qualityMaterials[quality].mainTexture,
                     qualityToTarget = quality
                 };
@@ -142,12 +143,109 @@ namespace UniversalFermenter
             }
         }
 
-        public static Command_Action DispSpeeds = new Command_Action()
+        private static int gooseAngle = Rand.Range(0, 360);
+        public static Command_Action DebugGizmo()
         {
-            defaultLabel = "DEBUG: Display Speed Factors",
-            defaultDesc = "Display the current sun, rain, snow and wind speed factors and how much of the building is covered by roof.",
-            activateSound = SoundDefOf.Tick_Tiny,
-            action = () => 
+            Command_Action gizmo = new Command_Action
+            {
+                defaultLabel = "Debug: Options",
+                defaultDesc = "Opens a float menu with debug options.",
+                icon = ContentFinder<Texture2D>.Get("UI/DebugGoose"),
+                iconAngle = gooseAngle,
+                iconDrawScale = 1.25f
+            };
+            gizmo.action = () =>
+            {
+                FloatMenu floatMenu = new FloatMenu(DebugOptions())
+                {
+                    vanishIfMouseDistant = true,
+                };
+                Find.WindowStack.Add(floatMenu);
+            };
+            return gizmo;
+        }
+
+        public static List<FloatMenuOption> DebugOptions()
+        {
+            List<FloatMenuOption> floatMenuOptions = new List<FloatMenuOption>();
+            IEnumerable<ThingWithComps> things = Find.Selector.SelectedObjects.OfType<ThingWithComps>().Where(t => t.GetComp<CompUniversalFermenter>() != null);
+            IEnumerable<CompUniversalFermenter> comps = things.Select(t => t.TryGetComp<CompUniversalFermenter>());
+
+            if (comps.Any(c => !c.Empty && !c.Finished))
+            {
+                floatMenuOptions.Add(new FloatMenuOption("Finish process", delegate ()
+                {
+                    foreach (CompUniversalFermenter comp in comps)
+                    {
+                        if (comp.CurrentProcess.usesQuality)
+                        {
+                            comp.ProgressTicks = Mathf.RoundToInt(comp.DaysToReachTargetQuality * GenDate.TicksPerDay);
+                        }
+                        else
+                        {
+                            comp.ProgressTicks = Mathf.RoundToInt(comp.CurrentProcess.processDays * GenDate.TicksPerDay);
+                        }
+                    }
+                    gooseAngle = Rand.Range(0, 360);
+                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+                }));
+
+                floatMenuOptions.Add(new FloatMenuOption("Progress one day", delegate ()
+                {
+                    foreach (CompUniversalFermenter comp in comps)
+                    {
+                        comp.ProgressTicks += GenDate.TicksPerDay;
+                    }
+                    gooseAngle = Rand.Range(0, 360);
+                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+                }));
+                floatMenuOptions.Add(new FloatMenuOption("Progress half quadrum", delegate ()
+                {
+                    foreach (CompUniversalFermenter comp in comps)
+                    {
+                        comp.ProgressTicks += GenDate.TicksPerQuadrum / 2;
+                    }
+                    gooseAngle = Rand.Range(0, 360);
+                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+                }));
+            }
+
+            if (comps.Any(c => c.Finished))
+            {
+                floatMenuOptions.Add(new FloatMenuOption("Empty object", delegate ()
+                {
+                    foreach (CompUniversalFermenter comp in comps)
+                    {
+                        if (comp.Finished)
+                        {
+                            Thing product = comp.TakeOutProduct();
+                            GenPlace.TryPlaceThing(product, comp.parent.Position, comp.parent.Map, ThingPlaceMode.Near);
+                        }
+                    }
+                    gooseAngle = Rand.Range(0, 360);
+                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+                }));
+            }
+
+            if (comps.Any(c => c.Empty))
+            {
+                floatMenuOptions.Add(new FloatMenuOption("Fill object", delegate ()
+                {
+                    foreach (CompUniversalFermenter comp in comps)
+                    {
+                        if (comp.Empty)
+                        {
+                            Thing ingredient = ThingMaker.MakeThing(comp.CurrentProcess.ingredientFilter.AnyAllowedDef);
+                            ingredient.stackCount = comp.SpaceLeftForIngredient;
+                            comp.AddIngredient(ingredient);
+                        }
+                    }
+                    gooseAngle = Rand.Range(0, 360);
+                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+                }));
+            }
+
+            floatMenuOptions.Add(new FloatMenuOption("Log speed factors", delegate ()
             {
                 foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
                 {
@@ -155,15 +253,20 @@ namespace UniversalFermenter
                     if (comp != null)
                     {
                         Log.Message(comp.parent.ToString() + ": " +
-                              "sun: " + comp.CurrentSunFactor.ToString("0.00") +
-                              "| rain: " + comp.CurrentRainFactor.ToString("0.00") +
-                              "| snow: " + comp.CurrentSnowFactor.ToString("0.00") +
-                              "| wind: " + comp.CurrentWindFactor.ToString("0.00") +
-                              "| roofed: " + comp.RoofCoverage.ToString("0.00"));
+                                "sun: " + comp.CurrentSunFactor.ToStringPercent() +
+                                "| rain: " + comp.CurrentRainFactor.ToStringPercent() +
+                                "| snow: " + comp.CurrentSnowFactor.ToStringPercent() +
+                                "| wind: " + comp.CurrentWindFactor.ToStringPercent() +
+                                "| roofed: " + comp.RoofCoverage.ToStringPercent());
                     }
                 }
-            }
-        };
+                gooseAngle = Rand.Range(0, 360);
+                SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+            }));
+
+            return floatMenuOptions;
+        }
+
         public static Command_Action DevFinish = new Command_Action()
         {
             defaultLabel = "DEBUG: Finish",

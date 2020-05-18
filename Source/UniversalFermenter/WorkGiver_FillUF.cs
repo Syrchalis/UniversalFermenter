@@ -40,7 +40,7 @@ namespace UniversalFermenter
         {
             var comp = t.TryGetComp<CompUniversalFermenter>();
 
-            if (comp == null || comp.Fermented || comp.SpaceLeftForIngredient <= 0)
+            if (comp == null || comp.Finished || comp.SpaceLeftForIngredient <= 0)
             {
                 return false;
             }

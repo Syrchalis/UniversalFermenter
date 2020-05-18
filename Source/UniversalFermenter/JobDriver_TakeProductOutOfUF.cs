@@ -42,7 +42,7 @@ namespace UniversalFermenter
 		{
 			CompUniversalFermenter comp = Fermenter.TryGetComp<CompUniversalFermenter>();
 			// Verify fermenter validity
-			this.FailOn(() => !comp.Fermented);
+			this.FailOn(() => !comp.Finished);
 			this.FailOnDestroyedNullOrForbidden(FermenterInd);
 
 			// Reserve fermenter

@@ -34,8 +34,8 @@ namespace UniversalFermenter
 
         public bool Ruined => ruinedPercent >= 1f;
         public bool Empty => ingredientCount <= 0;
-        public bool Fermented => !Empty && ProgressPercent >= 1f;
-        public int SpaceLeftForIngredient => Fermented ? 0 : CurrentProcess.maxCapacity - ingredientCount;
+        public bool Finished => !Empty && ProgressPercent >= 1f;
+        public int SpaceLeftForIngredient => Finished ? 0 : CurrentProcess.maxCapacity - ingredientCount;
         public int ProgressTicks
         {
             get => progressTicks;
@@ -49,7 +49,7 @@ namespace UniversalFermenter
                 barFilledCachedMat = null;
             }
         }
-        public float ProgressDays => (float)progressTicks / GenDate.TicksPerDay;
+        public float ProgressDays => (float)ProgressTicks / GenDate.TicksPerDay;
         public float ProgressPercent
         {
             get
@@ -91,11 +91,11 @@ namespace UniversalFermenter
                 }
                 else if (CurrentProcess.usesQuality)
                 {
-                    return Mathf.Max(Mathf.RoundToInt((DaysToReachTargetQuality * GenDate.TicksPerDay) - progressTicks), 0);
+                    return Mathf.Max(Mathf.RoundToInt((DaysToReachTargetQuality * GenDate.TicksPerDay) - ProgressTicks), 0);
                 }
                 else
                 {
-                    return Mathf.Max(Mathf.RoundToInt((CurrentProcess.processDays * GenDate.TicksPerDay) - progressTicks), 0);
+                    return Mathf.Max(Mathf.RoundToInt((CurrentProcess.processDays * GenDate.TicksPerDay) - ProgressTicks), 0);
                 }
             }
         }
@@ -398,11 +398,9 @@ namespace UniversalFermenter
         public override IEnumerable<Gizmo> CompGetGizmosExtra()
         {
             //Dev options			
-            if (Prefs.DevMode && !Empty)
+            if (Prefs.DevMode)
             {
-                yield return UF_Utility.DevFinish;
-                yield return UF_Utility.AgeOneDay;
-                yield return UF_Utility.DispSpeeds;
+                yield return UF_Utility.DebugGizmo();
             }
             //Default buttons
             foreach (Gizmo c in base.CompGetGizmosExtra())
@@ -522,9 +520,9 @@ namespace UniversalFermenter
             {
                 if (CurrentProcess.usesQuality && ProgressDays >= CurrentProcess.qualityDays.awful)
                 {
-                    stringBuilder.AppendLine("UF_ContainsProduct".Translate(ingredientCount, CurrentProcess.maxCapacity, CurrentProcess.thingDef.label) + " - " + "QualityIs".Translate(CurrentQuality.GetLabel().ToLower()));
+                    stringBuilder.AppendLine("UF_ContainsProduct".Translate(ingredientCount, CurrentProcess.maxCapacity, CurrentProcess.thingDef.label) + " (" + CurrentQuality.GetLabel().ToLower() + ")");
                 }
-                else if (Fermented)
+                else if (Finished)
                 {
                     stringBuilder.AppendLine("UF_ContainsProduct".Translate(ingredientCount, CurrentProcess.maxCapacity, CurrentProcess.thingDef.label));
                 }
@@ -538,7 +536,7 @@ namespace UniversalFermenter
             // 4th line: "Non-ideal temp, sun, ... . Ferm. speed: xx %"
             if (!Empty)
             {
-                if (Fermented)
+                if (Finished)
                 {
                     stringBuilder.AppendLine("UF_Finished".Translate());
                 }
@@ -647,7 +645,7 @@ namespace UniversalFermenter
         public void AddIngredient(int count)
         {
             ruinedPercent = 0f;
-            if (Fermented)
+            if (Finished)
             {
                 Log.Warning("Universal Fermenter:: Tried to add ingredient to a fermenter full of product. Colonists should take the product first.");
                 return;
@@ -657,7 +655,7 @@ namespace UniversalFermenter
             {
                 return;
             }
-            progressTicks = Mathf.RoundToInt(GenMath.WeightedAverage(0f, num, progressTicks, ingredientCount));
+            ProgressTicks = Mathf.RoundToInt(GenMath.WeightedAverage(0f, num, ProgressTicks, ingredientCount));
             if (Empty)
             {
                 GraphicChange(false);
@@ -667,7 +665,7 @@ namespace UniversalFermenter
 
         public Thing TakeOutProduct()
         {
-            if (!Fermented && !CurrentProcess.usesQuality)
+            if (!Finished && !CurrentProcess.usesQuality)
             {
                 Log.Warning("Universal Fermenter: Tried to get product but it's not yet fermented.");
                 return null;
@@ -699,7 +697,7 @@ namespace UniversalFermenter
         public void Reset()
         {
             ingredientCount = 0;	
-            progressTicks = 0;
+            ProgressTicks = 0;
             inputIngredients.Clear();
             ingredientLabels.Clear();
             GraphicChange(true);

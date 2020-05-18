@@ -1,28 +1,45 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-    <name>[SYR] Universal Fermenter</name>
-    <author>Syrchalis</author>
-    <supportedVersions>
+	<name>[SYR] Universal Fermenter</name>
+	<author>Syrchalis</author>
+	<supportedVersions>
 		<li>1.1</li>
 	</supportedVersions>
 	<packageId>syrchalis.universalfermenter</packageId>
-    <description>Allows various product transformation processes
+	<description>A framework for time-based processing inside objects
 
 So what's different about this version?
 
-Performance.
+Performance
+Workgivers: Scanned everything on the whole map -> Now checks a cached list of everything with the UF comp
+Gizmos: Uncached constantly updating gizmos creating huge load per object selected -> fully pre-cached gizmos cost barely any performance, no matter how many objects you select
 
-The original's workgivers scan the entire map for fermenting barrels which is bad, especially on large maps. Worse though, the gizmos caused insane FPS drops whenever multiple barrels were selected, but even a single barrel had a way too high load. With the help of a dictionary cache that problem is gone entirely and selecting a lot of barrels and switching what you want to ferment is no issue anymore.
+Player features
+Shiny new barrel texture
+Fermenting Barrel can be built out of any woody material
+Brewery can be built out of any woody material
+Select which item to process from a float menu
+Icon on buildings shows the selected process (only if building has more than 1 process)
+New mod settings
+Change icon size or disable it
+Change icon to resemble a single item or a full stack
+Sort the float menu list alphabetically
+Color coded processes
 
-Also comes with new fields for modders and new features for players.
+Mod developer features
+Refer to https://github.com/Syrchalis/UniversalFermenter/wiki
 
-Player features:
-- Icon that displays the product of the current process (can be disabled in mod settings)
-- New greyscale barrel model, which allows...
-- Barrel can be made from woody stuff, so if you have any added wood-types you can use those
-
-Modders refer to https://github.com/Syrchalis/UniversalFermenter/wiki for a feature list and explanation for the fields.
-
-
-Optimized by Dubwise and me.</description>
+Load Universal Fermenter before any mod that uses it. This ensures that it's assembly will be loaded first if other mods use an old version of universal fermenter.</description>
+	<loadBefore>
+		<li>Crustypeanut.RC2.Core</li>
+		<li>Crustypeanut.RC2.BaBE</li>
+		<li>Crustypeanut.RC2.MaME</li>
+		<li>OskarPotocki.VanillaFactionsExpanded.MedievalModule</li>
+		<li>OskarPotocki.VanillaFactionsExpanded.SettlersModule</li>
+		<li>dismarzero.VGP.VGPVegetableGarden</li>
+		<li>dismarzero.VGP.VGPGardenDrinks</li>
+		<li>n7huntsman.ceramics</li>
+		<li>sarg.rimbees</li>
+		<li>Owlchemist.SimpleChains.Lumber</li>
+	</loadBefore>
 </ModMetaData>
