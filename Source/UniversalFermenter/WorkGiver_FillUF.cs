@@ -16,7 +16,7 @@ namespace UniversalFermenter
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
-            return UF_Utility.comps.Where(x => x.parent.Map == pawn.Map && x.SpaceLeftForIngredient > 0).Select(x => x.parent);
+            return pawn.Map.GetComponent<MapComponent_UF>().thingsWithUFComp;
         }
 
         public override bool Prioritized => true;
@@ -38,14 +38,13 @@ namespace UniversalFermenter
 
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
-            var comp = t.TryGetComp<CompUniversalFermenter>();
-
+            CompUniversalFermenter comp = t.TryGetComp<CompUniversalFermenter>();
             if (comp == null || comp.Finished || comp.SpaceLeftForIngredient <= 0)
             {
                 return false;
             }
 
-            var ambientTemperature = comp.parent.AmbientTemperature;
+            float ambientTemperature = comp.parent.AmbientTemperature;
             if (ambientTemperature < comp.CurrentProcess.temperatureSafe.min + 2f ||
                 ambientTemperature > comp.CurrentProcess.temperatureSafe.max - 2f)
             {
@@ -53,13 +52,12 @@ namespace UniversalFermenter
                 return false;
             }
 
-            if (t.IsForbidden(pawn) ||
-                !pawn.CanReserveAndReach(t, PathEndMode.Touch, pawn.NormalMaxDanger(), 1, -1, null, forced))
+            if (pawn.Map.designationManager.DesignationOn(t, DesignationDefOf.Deconstruct) != null)
             {
                 return false;
             }
 
-            if (pawn.Map.designationManager.DesignationOn(t, DesignationDefOf.Deconstruct) != null)
+            if (t.IsForbidden(pawn) || !pawn.CanReserveAndReach(t, PathEndMode.Touch, pawn.NormalMaxDanger(), 1, -1, null, forced))
             {
                 return false;
             }
@@ -76,20 +74,15 @@ namespace UniversalFermenter
 
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
-            var t2 = FindIngredient(pawn, t);
-            return new Job(UF_DefOf.FillUniversalFermenter, t, t2)
-            {
-                count = t.TryGetComp<CompUniversalFermenter>().SpaceLeftForIngredient
-            };
+            Thing t2 = FindIngredient(pawn, t);
+            return new Job(UF_DefOf.FillUniversalFermenter, t, t2);
         }
 
         private Thing FindIngredient(Pawn pawn, Thing fermenter)
         {
-            var filter = fermenter.TryGetComp<CompUniversalFermenter>().CurrentProcess.ingredientFilter;
-            Predicate<Thing> predicate = x => !x.IsForbidden(pawn) && pawn.CanReserve(x) && filter.Allows(x);
-            var validator = predicate;
-            return GenClosest.ClosestThingReachable(pawn.Position, pawn.Map, filter.BestThingRequest,
-                PathEndMode.ClosestTouch, TraverseParms.For(pawn), 9999f, validator);
+            ThingFilter filter = fermenter.TryGetComp<CompUniversalFermenter>().CurrentProcess.ingredientFilter;
+            Predicate<Thing> validator = x => !x.IsForbidden(pawn) && pawn.CanReserve(x) && filter.Allows(x);
+            return GenClosest.ClosestThingReachable(pawn.Position, pawn.Map, filter.BestThingRequest, PathEndMode.ClosestTouch, TraverseParms.For(pawn), 9999f, validator);
         }
     }
 }

@@ -10,12 +10,29 @@ using Verse.Sound;
 
 namespace UniversalFermenter
 {
+    
+    public class MapComponent_UF : MapComponent
+    {
+        [Unsaved(false)]
+        public List<ThingWithComps> thingsWithUFComp = new List<ThingWithComps>();
+
+        public MapComponent_UF(Map map) : base(map)
+        {
+        }
+        public void Register(ThingWithComps thing)
+        {
+            thingsWithUFComp.Add(thing);
+        }
+        public void Deregister(ThingWithComps thing)
+        {
+            thingsWithUFComp.Remove(thing);
+        }
+    }
+
     [StaticConstructorOnStartup]
     public static class UF_Utility
     {
-        public static List<CompUniversalFermenter> comps = new List<CompUniversalFermenter>();
-
-        public static Dictionary<int, UF_Process> allUFProcesses = new Dictionary<int, UF_Process>();
+        public static List<UF_Process> allUFProcesses = new List<UF_Process>();
 
         public static Dictionary<UF_Process, Command_Action> processGizmos = new Dictionary<UF_Process, Command_Action>();
         public static Dictionary<QualityCategory, Command_Action> qualityGizmos = new Dictionary<QualityCategory, Command_Action>();
@@ -79,21 +96,8 @@ namespace UniversalFermenter
             for (int i = 0; i < tempProcessList.Count; i++)
             {
                 tempProcessList[i].uniqueID = i;
-                allUFProcesses.Add(i, tempProcessList[i]);
+                allUFProcesses.Add(tempProcessList[i]);
             }
-#if DEBUG
-            StringBuilder stringBuilder = new StringBuilder();
-            foreach (KeyValuePair<int, UF_Process> keyValuePair in allUFProcesses)
-            {
-                StringBuilder stringBuilder2 = stringBuilder;
-                int key = keyValuePair.Key;
-                string str = key.ToString();
-                string str2 = ": ";
-                string value = keyValuePair.Value.thingDef.defName;
-                stringBuilder2.AppendLine(str + str2 + value);
-            }
-            Log.Message("Processes: \n" + stringBuilder);
-#endif
         }
 
         public static void RecacheProcessGizmos()
@@ -132,7 +136,7 @@ namespace UniversalFermenter
         public static void RecacheProcessMaterials()
         {
             processMaterials.Clear();
-            foreach (UF_Process process in allUFProcesses.Values)
+            foreach (UF_Process process in allUFProcesses)
             {
                 Texture2D icon = GetIcon(process.thingDef, UF_Settings.singleItemIcon);
                 Material mat = MaterialPool.MatFrom(icon);

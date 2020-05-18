@@ -12,9 +12,8 @@ namespace UniversalFermenter
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
-            return UF_Utility.comps.Where(x => x.parent.Map == pawn.Map).Select(x => x.parent);
+            return pawn.Map.GetComponent<MapComponent_UF>().thingsWithUFComp;
         }
-
 
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)
         {

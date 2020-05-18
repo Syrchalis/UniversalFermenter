@@ -375,7 +375,7 @@ namespace UniversalFermenter
         public override void PostSpawnSetup(bool respawningAfterLoad)
         {
             base.PostSpawnSetup(respawningAfterLoad);
-            UF_Utility.comps.Add(this);
+            parent.Map.GetComponent<MapComponent_UF>().Register(parent);
             if (!Empty)
             {
                 graphicChangeQueued = true;
@@ -385,7 +385,7 @@ namespace UniversalFermenter
         public override void PostDeSpawn(Map map)
         {
             base.PostDeSpawn(map);
-            UF_Utility.comps.Remove(this);
+            map.GetComponent<MapComponent_UF>().Deregister(parent);
         }
         
         public override void PostExposeData()
@@ -626,24 +626,23 @@ namespace UniversalFermenter
             }
         }
 
-        public bool AddIngredient(Thing ingredient)
+        public void AddIngredient(Thing ingredient)
         {
-            if (ingredient == null || !CurrentProcess.ingredientFilter.Allows(ingredient))
-            {
-                return false;
-            }
             if (!ingredientLabels.Contains(ingredient.def.label))
             {
                 ingredientLabels.Add(ingredient.def.label);
             }
-            CompIngredients comp = ingredient.TryGetComp<CompIngredients>();
-            if (comp != null)
+            CompIngredients compIngredients = ingredient.TryGetComp<CompIngredients>();
+            if (compIngredients != null)
             {
-                inputIngredients.AddRange(comp.ingredients);
+                inputIngredients.AddRange(compIngredients.ingredients);
             }
-            AddIngredient(ingredient.stackCount);
-            ingredient.Destroy(DestroyMode.Vanish);
-            return true;
+            int num = Mathf.Min(ingredient.stackCount, CurrentProcess.maxCapacity - ingredientCount);
+            if (num > 0)
+            {
+                AddIngredient(ingredient.stackCount);
+                ingredient.Destroy(DestroyMode.Vanish);
+            }
         }
 
         public void AddIngredient(int count)
