@@ -56,6 +56,9 @@
       <HintPath>..\..\..\..\RimWorldWin64_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="0MultiplayerAPI">
+      <HintPath>..\packages\RimWorld.MultiplayerAPI.0.2.0\lib\net472\0MultiplayerAPI.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Building_ColorCoded.cs" />
@@ -74,6 +77,10 @@
     <Compile Include="UF_Utility.cs" />
     <Compile Include="WorkGiver_FillUF.cs" />
     <Compile Include="WorkGiver_TakeProductOutOfUF.cs" />
+    <Compile Include="MultiplayerCompatibility.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

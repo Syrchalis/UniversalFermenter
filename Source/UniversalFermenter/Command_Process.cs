@@ -21,23 +21,36 @@ namespace UniversalFermenter
                 List<FloatMenuOption> floatMenuOptions = new List<FloatMenuOption>();
                 foreach (UF_Process process in processOptions)
                 {
-                    floatMenuOptions.Add(new FloatMenuOption(process.thingDef.LabelCap, delegate ()
-                    {
-                        foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
-                        {
-                            CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                            if (comp != null && comp.CurrentProcess == processToTarget)
-                            {
-                                comp.CurrentProcess = process;
-                            }
-                        }
-                    }, UF_Utility.GetIcon(process.thingDef, UF_Settings.singleItemIcon), Color.white, MenuOptionPriority.Default, null, null, 0f, null, null));
+                    floatMenuOptions.Add(
+                        new FloatMenuOption(
+                            process.thingDef.LabelCap,
+                            () => ChangeProcess(processToTarget, process),
+                            UF_Utility.GetIcon(process.thingDef, UF_Settings.singleItemIcon),
+                            Color.white,
+                            MenuOptionPriority.Default,
+                            null,
+                            null,
+                            0f,
+                            null,
+                            null
+                        )
+                    );
                 }
                 if (UF_Settings.sortAlphabetically)
                 {
                     floatMenuOptions.SortBy(fmo => fmo.Label);
                 }
                 return floatMenuOptions;
+            }
+        }
+
+        internal static void ChangeProcess(UF_Process processToTarget, UF_Process process)
+        {
+            foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>()) {
+                CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
+                if (comp != null && comp.CurrentProcess == processToTarget) {
+                    comp.CurrentProcess = process;
+                }
             }
         }
     }
@@ -53,19 +66,32 @@ namespace UniversalFermenter
                 List<FloatMenuOption> qualityfloatMenuOptions = new List<FloatMenuOption>();
                 foreach (QualityCategory quality in Enum.GetValues(typeof(QualityCategory)))
                 {
-                    qualityfloatMenuOptions.Add(new FloatMenuOption(quality.GetLabel(), delegate ()
-                    {
-                        foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
-                        {
-                            CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                            if (comp != null && comp.CurrentProcess.usesQuality && comp.TargetQuality == qualityToTarget)
-                            {
-                                comp.TargetQuality = quality;
-                            }
-                        }
-                    }, (Texture2D)UF_Utility.qualityMaterials[quality].mainTexture, Color.white, MenuOptionPriority.Default, null, null, 0f, null, null));
+                    qualityfloatMenuOptions.Add(
+                        new FloatMenuOption(
+                            quality.GetLabel(),
+                            () => ChangeQuality(qualityToTarget,quality),
+                            (Texture2D)UF_Utility.qualityMaterials[quality].mainTexture,
+                            Color.white,
+                            MenuOptionPriority.Default,
+                            null,
+                            null,
+                            0f,
+                            null,
+                            null
+                        )
+                    );
                 }
                 return qualityfloatMenuOptions;
+            }
+        }
+
+        internal static void ChangeQuality(QualityCategory qualityToTarget, QualityCategory quality)
+        {
+            foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>()) {
+                CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
+                if (comp != null && comp.CurrentProcess.usesQuality && comp.TargetQuality == qualityToTarget) {
+                    comp.TargetQuality = quality;
+                }
             }
         }
     }
