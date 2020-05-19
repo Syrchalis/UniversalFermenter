@@ -206,98 +206,99 @@ namespace UniversalFermenter
 
             if (comps.Any(c => !c.Empty && !c.Finished))
             {
-                floatMenuOptions.Add(new FloatMenuOption("Finish process", delegate ()
-                {
-                    foreach (CompUniversalFermenter comp in comps)
-                    {
-                        if (comp.CurrentProcess.usesQuality)
-                        {
-                            comp.ProgressTicks = Mathf.RoundToInt(comp.DaysToReachTargetQuality * GenDate.TicksPerDay);
-                        }
-                        else
-                        {
-                            comp.ProgressTicks = Mathf.RoundToInt(comp.CurrentProcess.processDays * GenDate.TicksPerDay);
-                        }
-                    }
-                    gooseAngle = Rand.Range(0, 360);
-                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
-                }));
-
-                floatMenuOptions.Add(new FloatMenuOption("Progress one day", delegate ()
-                {
-                    foreach (CompUniversalFermenter comp in comps)
-                    {
-                        comp.ProgressTicks += GenDate.TicksPerDay;
-                    }
-                    gooseAngle = Rand.Range(0, 360);
-                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
-                }));
-                floatMenuOptions.Add(new FloatMenuOption("Progress half quadrum", delegate ()
-                {
-                    foreach (CompUniversalFermenter comp in comps)
-                    {
-                        comp.ProgressTicks += GenDate.TicksPerQuadrum / 2;
-                    }
-                    gooseAngle = Rand.Range(0, 360);
-                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
-                }));
+                floatMenuOptions.Add(new FloatMenuOption("Finish process", () => FinishProcess(comps)));
+                floatMenuOptions.Add(new FloatMenuOption("Progress one day", () => ProgressOneDay(comps)));
+                floatMenuOptions.Add(new FloatMenuOption("Progress half quadrum", () => ProgressHalfQuadrum(comps)));
             }
 
             if (comps.Any(c => c.Finished))
             {
-                floatMenuOptions.Add(new FloatMenuOption("Empty object", delegate ()
-                {
-                    foreach (CompUniversalFermenter comp in comps)
-                    {
-                        if (comp.Finished)
-                        {
-                            Thing product = comp.TakeOutProduct();
-                            GenPlace.TryPlaceThing(product, comp.parent.Position, comp.parent.Map, ThingPlaceMode.Near);
-                        }
-                    }
-                    gooseAngle = Rand.Range(0, 360);
-                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
-                }));
+                floatMenuOptions.Add(new FloatMenuOption("Empty object", () => EmptyObject(comps)));
             }
 
             if (comps.Any(c => c.Empty))
             {
-                floatMenuOptions.Add(new FloatMenuOption("Fill object", delegate ()
-                {
-                    foreach (CompUniversalFermenter comp in comps)
-                    {
-                        if (comp.Empty)
-                        {
-                            Thing ingredient = ThingMaker.MakeThing(comp.CurrentProcess.ingredientFilter.AnyAllowedDef);
-                            ingredient.stackCount = comp.SpaceLeftForIngredient;
-                            comp.AddIngredient(ingredient);
-                        }
-                    }
-                    gooseAngle = Rand.Range(0, 360);
-                    SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
-                }));
+                floatMenuOptions.Add(new FloatMenuOption("Fill object", () => FillObject(comps)));
             }
 
-            floatMenuOptions.Add(new FloatMenuOption("Log speed factors", delegate ()
+            floatMenuOptions.Add(new FloatMenuOption("Log speed factors", LogSpeedFactors));
+
+            return floatMenuOptions;
+        }
+
+        internal static void FinishProcess(IEnumerable<CompUniversalFermenter> comps)
+        {
+            foreach (CompUniversalFermenter comp in comps) {
+                if (comp.CurrentProcess.usesQuality) {
+                    comp.ProgressTicks = Mathf.RoundToInt(comp.DaysToReachTargetQuality * GenDate.TicksPerDay);
+                } else {
+                    comp.ProgressTicks = Mathf.RoundToInt(comp.CurrentProcess.processDays * GenDate.TicksPerDay);
+                }
+            }
+            gooseAngle = Rand.Range(0, 360);
+            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+        }
+
+        internal static void ProgressOneDay(IEnumerable<CompUniversalFermenter> comps)
+        {
+            foreach (CompUniversalFermenter comp in comps) {
+                comp.ProgressTicks += GenDate.TicksPerDay;
+            }
+            gooseAngle = Rand.Range(0, 360);
+            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+        }
+
+        internal static void ProgressHalfQuadrum(IEnumerable<CompUniversalFermenter> comps)
+        {
+            foreach (CompUniversalFermenter comp in comps) {
+                comp.ProgressTicks += GenDate.TicksPerQuadrum / 2;
+            }
+            gooseAngle = Rand.Range(0, 360);
+            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+        }
+
+        internal static void EmptyObject(IEnumerable<CompUniversalFermenter> comps)
+        {
+            foreach (CompUniversalFermenter comp in comps) {
+                if (comp.Finished) {
+                    Thing product = comp.TakeOutProduct();
+                    GenPlace.TryPlaceThing(product, comp.parent.Position, comp.parent.Map, ThingPlaceMode.Near);
+                }
+            }
+            gooseAngle = Rand.Range(0, 360);
+            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+        }
+
+        internal static void FillObject(IEnumerable<CompUniversalFermenter> comps)
+        {
             {
-                foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
-                {
-                    CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                    if (comp != null)
-                    {
-                        Log.Message(comp.parent.ToString() + ": " +
-                                "sun: " + comp.CurrentSunFactor.ToStringPercent() +
-                                "| rain: " + comp.CurrentRainFactor.ToStringPercent() +
-                                "| snow: " + comp.CurrentSnowFactor.ToStringPercent() +
-                                "| wind: " + comp.CurrentWindFactor.ToStringPercent() +
-                                "| roofed: " + comp.RoofCoverage.ToStringPercent());
+                foreach (CompUniversalFermenter comp in comps) {
+                    if (comp.Empty) {
+                        Thing ingredient = ThingMaker.MakeThing(comp.CurrentProcess.ingredientFilter.AnyAllowedDef);
+                        ingredient.stackCount = comp.SpaceLeftForIngredient;
+                        comp.AddIngredient(ingredient);
                     }
                 }
                 gooseAngle = Rand.Range(0, 360);
                 SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
-            }));
+            }
+        }
 
-            return floatMenuOptions;
+        internal static void LogSpeedFactors()
+        {
+            foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>()) {
+                CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
+                if (comp != null) {
+                    Log.Message(comp.parent.ToString() + ": " +
+                            "sun: " + comp.CurrentSunFactor.ToStringPercent() +
+                            "| rain: " + comp.CurrentRainFactor.ToStringPercent() +
+                            "| snow: " + comp.CurrentSnowFactor.ToStringPercent() +
+                            "| wind: " + comp.CurrentWindFactor.ToStringPercent() +
+                            "| roofed: " + comp.RoofCoverage.ToStringPercent());
+                }
+            }
+            gooseAngle = Rand.Range(0, 360);
+            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
         }
 
         public static string IngredientFilterSummary(ThingFilter thingFilter)
