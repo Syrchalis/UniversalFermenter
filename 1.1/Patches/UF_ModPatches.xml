@@ -680,7 +680,6 @@
     </mods>
     <match Class="PatchOperationSequence">
       <operations>
-        <!-- Change Drying Racks -->
         <li Class="PatchOperationRemove">
           <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack" or defName="RC2_PicklingBarrel" or defName="RC2_FruitDryingRack"]/comps/li[@Class="ExpandableFermenting.CompProperties_Processing"]</xpath>
         </li>
@@ -746,25 +745,6 @@
           </value>
         </li>
         <li Class="PatchOperationReplace">
-          <success>Always</success>
-          <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/comps/li[@Class="ExpandableFermenting.CompProperties_Processing"]</xpath>
-          <value>
-            <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
-              <processes>
-                <li>
-                  <thingDef>RC2_Cheese</thingDef>
-                  <ingredientFilter>
-                    <thingDefs>
-                      <li>RC2_MilkCurd</li>
-                    </thingDefs>
-                  </ingredientFilter>
-                  <processDays>1</processDays>
-                </li>
-              </processes>
-            </li>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
           <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack"]/graphicData/texPath</xpath>
           <value>
             <texPath>Things/Building/RC2/MeatDryingRack/MeatDryingRack</texPath>
@@ -782,29 +762,17 @@
             <texPath>Things/Building/RC2/PicklingBarrel/PicklingBarrel</texPath>
           </value>
         </li>
-        <li Class="PatchOperationReplace">
-          <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/graphicData/texPath</xpath>
-          <value>
-            <texPath>Things/Building/RC2/CheesePress/CheesePress</texPath>
-          </value>
-        </li>
         <li Class="PatchOperationRemove">
-          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack" or defName="RC2_PicklingBarrel" or defName="RC2_CheesePress"]/graphicData/drawRotated</xpath>
+          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack" or defName="RC2_PicklingBarrel"]/graphicData/drawRotated</xpath>
         </li>
         <li Class="PatchOperationAdd">
-          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack" or defName ="RC2_FruitDryingRack" or defName="RC2_PicklingBarrel" or defName="RC2_CheesePress"]</xpath>
+          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack" or defName ="RC2_FruitDryingRack" or defName="RC2_PicklingBarrel"]</xpath>
           <value>
             <defaultPlacingRot>South</defaultPlacingRot>
           </value>
         </li>
         <li Class="PatchOperationAdd">
           <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack"]</xpath>
-          <value>
-            <rotatable>false</rotatable>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
-          <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/rotatable</xpath>
           <value>
             <rotatable>false</rotatable>
           </value>
@@ -823,6 +791,57 @@
         <li Class="PatchOperationRemove">
           <xpath>Defs/WorkGiverDef[giverClass="ExpandableFermenting.WorkGiver_FillFermentingBuilding"
             or giverClass="ExpandableFermenting.WorkGiver_TakeProductOutOfFermentingBuilding"]</xpath>
+        </li>
+        <li Class="PatchOperationFindMod">
+          <mods>
+            <li>RimCuisine 2 Meals and Munchies Expansion (Continued)</li>
+          </mods>
+          <match Class="PatchOperationSequence">
+            <operations>
+              <li Class="PatchOperationRemove">
+                <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/comps/li[@Class="ExpandableFermenting.CompProperties_Processing"]</xpath>
+              </li>
+              <li Class="PatchOperationAdd">
+                <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/comps</xpath>
+                <value>
+                  <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
+                    <processes>
+                      <li>
+                        <thingDef>RC2_Cheese</thingDef>
+                        <ingredientFilter>
+                          <thingDefs>
+                            <li>RC2_MilkCurd</li>
+                          </thingDefs>
+                        </ingredientFilter>
+                        <processDays>1</processDays>
+                      </li>
+                    </processes>
+                  </li>
+                </value>
+              </li>
+              <li Class="PatchOperationReplace">
+                <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/graphicData/texPath</xpath>
+                <value>
+                  <texPath>Things/Building/RC2/CheesePress/CheesePress</texPath>
+                </value>
+              </li>
+              <li Class="PatchOperationRemove">
+                <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/graphicData/drawRotated</xpath>
+              </li>
+              <li Class="PatchOperationAdd">
+                <xpath>Defs/ThingDef[defName="RC2_CheesePress"]</xpath>
+                <value>
+                  <defaultPlacingRot>South</defaultPlacingRot>
+                </value>
+              </li>
+              <li Class="PatchOperationReplace">
+                <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/rotatable</xpath>
+                <value>
+                  <rotatable>false</rotatable>
+                </value>
+              </li>
+            </operations>
+          </match>
         </li>
       </operations>
     </match>
