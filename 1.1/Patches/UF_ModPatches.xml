@@ -673,4 +673,159 @@
       </match>
   </Operation>
 
+<!-- [1.0, 1.1] RimCuisine 2 Core | Crustypeanut.RC2.Core -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>[1.0, 1.1] RimCuisine 2 Core</li>
+    </mods>
+    <match Class="PatchOperationSequence">
+      <operations>
+        <!-- Change Drying Racks -->
+        <li Class="PatchOperationRemove">
+          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack" or defName="RC2_PicklingBarrel" or defName="RC2_FruitDryingRack"]/comps/li[@Class="ExpandableFermenting.CompProperties_Processing"]</xpath>
+        </li>
+        <li Class="PatchOperationAdd">
+          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack"]/comps</xpath>
+          <value>
+            <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
+              <barOffset>(0.0, 0.17)</barOffset>
+              <processes>
+                <li>
+                  <thingDef>RC2_DriedMeat</thingDef>
+                  <ingredientFilter>
+                    <thingDefs>
+                      <li>RC2_TrimmedMeat</li>
+                    </thingDefs>
+                  </ingredientFilter>
+                  <maxCapacity>150</maxCapacity>
+                  <processDays>2</processDays>
+                  <graphicSuffix>Full</graphicSuffix>
+                </li>
+              </processes>
+            </li>
+          </value>
+        </li>
+        <li Class="PatchOperationAdd">
+          <xpath>Defs/ThingDef[defName="RC2_FruitDryingRack"]/comps</xpath>
+          <value>
+            <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
+              <processes>
+                <li>
+                  <thingDef>RC2_DriedFruit</thingDef>
+                  <ingredientFilter>
+                    <thingDefs>
+                      <li>RC2_PreparedFruit</li>
+                    </thingDefs>
+                  </ingredientFilter>
+                  <processDays>2</processDays>
+                  <graphicSuffix>Full</graphicSuffix>
+                </li>
+              </processes>
+            </li>
+          </value>
+        </li>
+        <li Class="PatchOperationAdd">
+          <xpath>Defs/ThingDef[defName="RC2_PicklingBarrel"]/comps</xpath>
+          <value>
+            <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
+              <barOffset>(0.0, -0.2)</barOffset>
+              <processes>
+                <li>
+                  <thingDef>RC2_PickledVegetables</thingDef>
+                  <ingredientFilter>
+                    <thingDefs>
+                      <li>RC2_PickleBrine</li>
+                    </thingDefs>
+                  </ingredientFilter>
+                  <maxCapacity>75</maxCapacity>
+                  <processDays>5</processDays>
+                  <graphicSuffix>Full</graphicSuffix>
+                </li>
+              </processes>
+            </li>
+          </value>
+        </li>
+        <li Class="PatchOperationReplace">
+          <success>Always</success>
+          <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/comps/li[@Class="ExpandableFermenting.CompProperties_Processing"]</xpath>
+          <value>
+            <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
+              <processes>
+                <li>
+                  <thingDef>RC2_Cheese</thingDef>
+                  <ingredientFilter>
+                    <thingDefs>
+                      <li>RC2_MilkCurd</li>
+                    </thingDefs>
+                  </ingredientFilter>
+                  <processDays>1</processDays>
+                </li>
+              </processes>
+            </li>
+          </value>
+        </li>
+        <li Class="PatchOperationReplace">
+          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack"]/graphicData/texPath</xpath>
+          <value>
+            <texPath>Things/Building/RC2/MeatDryingRack/MeatDryingRack</texPath>
+          </value>
+        </li>
+        <li Class="PatchOperationReplace">
+          <xpath>Defs/ThingDef[defName="RC2_FruitDryingRack"]/graphicData/texPath</xpath>
+          <value>
+            <texPath>Things/Building/RC2/FruitDryingRack/FruitDryingRack</texPath>
+          </value>
+        </li>
+        <li Class="PatchOperationReplace">
+          <xpath>Defs/ThingDef[defName="RC2_PicklingBarrel"]/graphicData/texPath</xpath>
+          <value>
+            <texPath>Things/Building/RC2/PicklingBarrel/PicklingBarrel</texPath>
+          </value>
+        </li>
+        <li Class="PatchOperationReplace">
+          <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/graphicData/texPath</xpath>
+          <value>
+            <texPath>Things/Building/RC2/CheesePress/CheesePress</texPath>
+          </value>
+        </li>
+        <li Class="PatchOperationRemove">
+          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack" or defName="RC2_PicklingBarrel" or defName="RC2_CheesePress"]/graphicData/drawRotated</xpath>
+        </li>
+        <li Class="PatchOperationAdd">
+          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack" or defName ="RC2_FruitDryingRack" or defName="RC2_PicklingBarrel" or defName="RC2_CheesePress"]</xpath>
+          <value>
+            <defaultPlacingRot>South</defaultPlacingRot>
+          </value>
+        </li>
+        <li Class="PatchOperationAdd">
+          <xpath>Defs/ThingDef[defName="RC2_MeatDryingRack"]</xpath>
+          <value>
+            <rotatable>false</rotatable>
+          </value>
+        </li>
+        <li Class="PatchOperationReplace">
+          <xpath>Defs/ThingDef[defName="RC2_CheesePress"]/rotatable</xpath>
+          <value>
+            <rotatable>false</rotatable>
+          </value>
+        </li>
+        <li Class="PatchOperationRemove">
+          <xpath>Defs/ThingDef[thingClass="ExpandableFermenting.Building_Processing"]/thingClass</xpath>
+        </li>
+        <!-- Removes all barrels of RimCuisine 2 Drinks -->
+        <li Class="PatchOperationRemove">
+          <xpath>Defs/ThingDef[thingClass="ExpandableFermenting.Building_Fermenting"]</xpath>
+        </li>
+        <li Class="PatchOperationRemove">
+          <xpath>Defs/JobDef[driverClass="ExpandableFermenting.JobDriver_FillFermentingBuilding"
+            or driverClass="ExpandableFermenting.JobDriver_TakeProductOutOfFermentingBuilding"]</xpath>
+        </li>
+        <li Class="PatchOperationRemove">
+          <xpath>Defs/WorkGiverDef[giverClass="ExpandableFermenting.WorkGiver_FillFermentingBuilding"
+            or giverClass="ExpandableFermenting.WorkGiver_TakeProductOutOfFermentingBuilding"]</xpath>
+        </li>
+      </operations>
+    </match>
+  </Operation>
+
 </Patch>
