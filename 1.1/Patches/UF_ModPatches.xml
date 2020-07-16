@@ -843,8 +843,203 @@
             </operations>
           </match>
         </li>
+        <li Class="PatchOperationFindMod">
+          <mods>
+            <li>RimCuisine 2: Bottling and Booze Expansion (Continued)</li>
+          </mods>
+          <match Class="PatchOperationSequence">
+            <operations>
+              <li Class="PatchOperationAdd">
+                  <xpath>*/ThingDef[defName = "UniversalFermenter"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes</xpath>
+                  <value>
+                    <li>
+                      <thingDef>RC2_Wine</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_GrapeMust</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>30</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(128, 64, 128)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_Ale</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_WheatWort</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>6</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(24, 96, 24)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_Stout</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_OatWort</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>6</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(38, 26, 13)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_Cider</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_AppleMust</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>15</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(192, 64, 96)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_Mead</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_HoneyMust</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>15</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(184, 192, 64)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_FruitWine</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_FruitMust</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>30</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(32, 64, 192)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_Sake</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_RiceMash</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>30</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(128, 224, 160)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_AgaveMosto</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RawAgave</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>7</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(128, 32, 32)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_PotatoMash</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RawPotatoes</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>5</processDays>
+                      <maxCapacity>35</maxCapacity>
+                      <colorCoded>true</colorCoded>
+                      <color>(96, 96, 96)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_SugarcaneWort</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_RawSugarcane</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>7</processDays>
+                      <maxCapacity>35</maxCapacity>
+                      <colorCoded>true</colorCoded>
+                      <color>(128, 192, 32)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_Gin</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_GinPrecursor</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>2</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(0, 160, 224)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_CornMash</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RawCorn</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>10</processDays>
+                      <maxCapacity>35</maxCapacity>
+                      <colorCoded>true</colorCoded>
+                      <color>(224, 192, 0)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_AmbrosiaNectar</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_AmbrosiaMust</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>6</processDays>
+                      <maxCapacity>5</maxCapacity>
+                      <colorCoded>true</colorCoded>
+                      <color>(224, 128, 224)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_Kumis</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_KumisMust</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>2</processDays>
+                      <colorCoded>true</colorCoded>
+                      <color>(255, 255, 255)</color>
+                    </li>
+                    <li>
+                      <thingDef>RC2_CoconutWort</thingDef>
+                      <ingredientFilter>
+                        <thingDefs>
+                          <li>RC2_RawCoconut</li>
+                        </thingDefs>
+                      </ingredientFilter>
+                      <processDays>8</processDays>
+                      <maxCapacity>35</maxCapacity>
+                      <colorCoded>true</colorCoded>
+                      <color>(64, 16, 128)</color>
+                    </li>
+                  </value>
+                </li>
+
+                <li Class="PatchOperationConditional">
+                  <success>Always</success>
+                  <xpath>*/ThingDef[defName = "UniversalFermenter"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes/li[thingDef = "Beer"]</xpath>
+                  <match Class="PatchOperationAdd">
+                    <xpath>*/ThingDef[defName = "UniversalFermenter"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes/li[thingDef = "Beer"]</xpath>
+                    <value>
+                      <colorCoded>true</colorCoded>
+                      <color>(128, 80, 48)</color>
+                    </value>
+                  </match>
+                </li>
+            </operations>
+          </match>
+        </li>
       </operations>
     </match>
   </Operation>
-
 </Patch>
