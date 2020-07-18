@@ -13,8 +13,8 @@ namespace UniversalFermenter
 
             // Sync all gizmo clicks
 
-            MP.RegisterSyncMethod(typeof(Command_Process), nameof(Command_Process.ChangeProcess));
-            MP.RegisterSyncMethod(typeof(Command_Quality), nameof(Command_Quality.ChangeQuality));
+            MP.RegisterSyncMethod(typeof(Command_Process), nameof(Command_Process.ChangeProcess)).SetContext(SyncContext.MapSelected);
+            MP.RegisterSyncMethod(typeof(Command_Quality), nameof(Command_Quality.ChangeQuality)).SetContext(SyncContext.MapSelected);
 
             var methods = new[] {
                 nameof(UF_Utility.FinishProcess),
