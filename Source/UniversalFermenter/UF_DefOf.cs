@@ -17,5 +17,7 @@ namespace UniversalFermenter
         public static JobDef TakeProductOutOfUniversalFermenter;
 
         public static SoundDef UF_Honk;
+
+        public static ThingDef UniversalFermenter;
     }
 }

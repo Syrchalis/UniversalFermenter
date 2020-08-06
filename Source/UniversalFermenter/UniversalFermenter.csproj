@@ -27,7 +27,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\1.1\Assemblies\</OutputPath>
+    <OutputPath>..\..\Assemblies\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -64,6 +64,7 @@
     <Compile Include="Building_ColorCoded.cs" />
     <Compile Include="Command_Process.cs" />
     <Compile Include="CompProperties_UniversalFermenter.cs" />
+    <Compile Include="CompUFReplacer.cs" />
     <Compile Include="CompUniversalFermenter.cs" />
     <Compile Include="UF_DefOf.cs" />
     <Compile Include="JobDriver_FillUF.cs" />
