@@ -39,4 +39,6 @@
 	<UF_NextDesc>Produce {0} from {1}.</UF_NextDesc>
 	<UF_SetQualityDesc>Set the target quality for the process.</UF_SetQualityDesc>
 
+	<UF_OldBarrelInspectString>Old vanilla barrel, install it anywhere to replace it for universal fermenter</UF_OldBarrelInspectString>
+
 </LanguageData>

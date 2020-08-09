@@ -22,8 +22,11 @@
 		</value>
 	</Operation>
 
-	<Operation Class="PatchOperationRemove">
-	  <xpath>Defs/WorkGiverDef[defName = "TakeBeerOutOfFermentingBarrel" or defName = "FillFermentingBarrel"]</xpath>
+	<Operation Class="PatchOperationReplace">
+	  <xpath>Defs/WorkGiverDef[defName = "TakeBeerOutOfFermentingBarrel" or defName = "FillFermentingBarrel"]/giverClass</xpath>
+		<value>
+			<giverClass>WorkGiver_DoBill</giverClass>
+		</value>
 	</Operation>
 
 	<!-- Allow Brewery to be made of stuff -->
