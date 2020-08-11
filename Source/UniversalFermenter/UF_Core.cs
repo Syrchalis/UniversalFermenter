@@ -36,6 +36,11 @@ namespace UniversalFermenter
                 listing_Standard.CheckboxLabeled("UF_SingleItemIcon".Translate(), ref UF_Settings.singleItemIcon, "UF_SingleItemIconTooltip".Translate());
                 listing_Standard.Gap(12);
                 listing_Standard.CheckboxLabeled("UF_SortAlphabetically".Translate(), ref UF_Settings.sortAlphabetically, "UF_SortAlphabeticallyTooltip".Translate());
+                listing_Standard.Gap(12);
+                if (listing_Standard.ButtonText("UF_ReplaceVanillaBarrels".Translate(), "UF_ReplaceVanillaBarrelsTooltip".Translate()))
+                {
+                    ReplaceVanillaBarrels();
+                }
                 listing_Standard.Gap(24);
                 if (listing_Standard.ButtonText("UF_DefaultSettings".Translate(), "UF_DefaultSettingsTooltip".Translate()))
                 {
@@ -54,6 +59,71 @@ namespace UniversalFermenter
             base.WriteSettings();
             UF_Utility.RecacheAll();
         }
+
+        public void ReplaceVanillaBarrels()
+        {
+            if (Current.ProgramState != ProgramState.Playing)
+            {
+                return;
+            }
+            foreach (Map map in Find.Maps)
+            {
+                foreach (Thing thing in map.listerThings.ThingsOfDef(ThingDefOf.FermentingBarrel).ToList())
+                {
+                    bool inUse = false;
+                    float progress = 0;
+                    int fillCount = 0;
+                    IntVec3 position = thing.Position;
+                    ThingDef stuff;
+                    if (thing.Stuff != null)
+                    {
+                         stuff = thing.Stuff;
+                    }
+                    else
+                    {
+                        stuff = ThingDefOf.WoodLog;
+                    }
+                    if (thing is Building_FermentingBarrel oldBarrel)
+                    {
+                        inUse = oldBarrel.SpaceLeftForWort < 25;
+                        if (inUse)
+                        {
+                            progress = oldBarrel.Progress;
+                            fillCount = 25 - oldBarrel.SpaceLeftForWort;
+                        }
+                    }
+                    Thing newBarrel = ThingMaker.MakeThing(UF_DefOf.UniversalFermenter, stuff);
+                    GenSpawn.Spawn(newBarrel, position, map);
+                    if (inUse)
+                    {
+                        CompUniversalFermenter compUF = newBarrel.TryGetComp<CompUniversalFermenter>();
+                        compUF.CurrentProcess = compUF.Props.processes.First(p => p.thingDef == ThingDefOf.Beer);
+                        Thing wort = ThingMaker.MakeThing(ThingDefOf.Wort, null);
+                        wort.stackCount = fillCount;
+                        compUF.AddIngredient(wort);
+                        compUF.ProgressTicks = (int)(360000 * progress);
+                    }
+                }
+                foreach (Thing thing in map.listerThings.ThingsOfDef(ThingDefOf.MinifiedThing).Where(t => t.GetInnerIfMinified().def == ThingDefOf.FermentingBarrel).ToList())
+                {
+                    MinifiedThing minifiedThing = thing as MinifiedThing;
+                    ThingDef stuff;
+                    if (minifiedThing.InnerThing.Stuff != null)
+                    {
+                        stuff = minifiedThing.InnerThing.Stuff;
+                    }
+                    else
+                    {
+                        stuff = ThingDefOf.WoodLog;
+                    }
+                    minifiedThing.InnerThing = null;
+                    Thing newBarrel = ThingMaker.MakeThing(UF_DefOf.UniversalFermenter, stuff);
+                    minifiedThing.InnerThing = newBarrel;
+                    cachedGraphic.SetValue(minifiedThing, null);
+                }
+            }
+        }
+        public static FieldInfo cachedGraphic = typeof(MinifiedThing).GetField("cachedGraphic", BindingFlags.NonPublic | BindingFlags.Instance);
     }
 
     public class UF_Settings : ModSettings

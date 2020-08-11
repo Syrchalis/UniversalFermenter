@@ -15,6 +15,8 @@
 	<UF_SingleItemIconTooltip>If enabled will use icons that resemble a single item, otherwise will use icons that resemble a full stack (default: true)</UF_SingleItemIconTooltip>
 	<UF_SortAlphabetically>Sort list alphabetically</UF_SortAlphabetically>
 	<UF_SortAlphabeticallyTooltip>If enabled will sort list when clicking on the button to change process alphabetically, otherwise will sort by thingDef list (default: false)</UF_SortAlphabeticallyTooltip>
+	<UF_ReplaceVanillaBarrels>Replace vanilla barrels</UF_ReplaceVanillaBarrels>
+	<UF_ReplaceVanillaBarrelsTooltip>Replaces all vanilla fermenting barrels for the UF ones</UF_ReplaceVanillaBarrelsTooltip>
 	<UF_DefaultSettings>Reset to default</UF_DefaultSettings>
 	<UF_DefaultSettingsTooltip>Reset settings to default values</UF_DefaultSettingsTooltip>
 

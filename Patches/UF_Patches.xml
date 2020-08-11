@@ -5,23 +5,7 @@
 	  <xpath>Defs/ThingDef[defName = "FermentingBarrel"]/designationCategory</xpath>
 	</Operation>
 
-	<Operation Class="PatchOperationAdd">
-	  <xpath>Defs/ThingDef[defName = "FermentingBarrel"]/comps</xpath>
-		<value>
-			<li>
-				<compClass>UniversalFermenter.CompUFReplacer</compClass>
-			</li>
-		</value>
-	</Operation>
-
-	<!-- This is so barrels get replaced immediately and not after ~4 seconds -->
-	<Operation Class="PatchOperationReplace">
-	  <xpath>Defs/ThingDef[defName = "FermentingBarrel"]/tickerType</xpath>
-		<value>
-			<tickerType>Normal</tickerType>
-		</value>
-	</Operation>
-
+	<!-- Instead of removing the WorkGiver class gets replaced so it doesn't scan the map anymore -->
 	<Operation Class="PatchOperationReplace">
 	  <xpath>Defs/WorkGiverDef[defName = "TakeBeerOutOfFermentingBarrel" or defName = "FillFermentingBarrel"]/giverClass</xpath>
 		<value>

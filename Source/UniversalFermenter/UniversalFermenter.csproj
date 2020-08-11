@@ -68,7 +68,6 @@
     <Compile Include="Building_ColorCoded.cs" />
     <Compile Include="Command_Process.cs" />
     <Compile Include="CompProperties_UniversalFermenter.cs" />
-    <Compile Include="CompUFReplacer.cs" />
     <Compile Include="CompUniversalFermenter.cs" />
     <Compile Include="HarmonyPatches.cs" />
     <Compile Include="UF_DefOf.cs" />
