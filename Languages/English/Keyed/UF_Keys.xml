@@ -16,7 +16,7 @@
 	<UF_SortAlphabetically>Sort list alphabetically</UF_SortAlphabetically>
 	<UF_SortAlphabeticallyTooltip>If enabled will sort list when clicking on the button to change process alphabetically, otherwise will sort by thingDef list (default: false)</UF_SortAlphabeticallyTooltip>
 	<UF_ReplaceVanillaBarrels>Replace vanilla barrels</UF_ReplaceVanillaBarrels>
-	<UF_ReplaceVanillaBarrelsTooltip>Replaces all vanilla fermenting barrels for the UF ones</UF_ReplaceVanillaBarrelsTooltip>
+	<UF_ReplaceVanillaBarrelsTooltip>Replaces all vanilla fermenting barrels for the UF ones, intended to be used after adding UF to an existing game, not multiplayer safe</UF_ReplaceVanillaBarrelsTooltip>
 	<UF_DefaultSettings>Reset to default</UF_DefaultSettings>
 	<UF_DefaultSettingsTooltip>Reset settings to default values</UF_DefaultSettingsTooltip>
 
