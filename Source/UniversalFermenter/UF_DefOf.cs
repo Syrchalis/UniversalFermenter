@@ -12,6 +12,7 @@ namespace UniversalFermenter
     {
         static UF_DefOf()
         {
+            WorkGiver_FillUF.Reset();
         }
         public static JobDef FillUniversalFermenter;
         public static JobDef TakeProductOutOfUniversalFermenter;
