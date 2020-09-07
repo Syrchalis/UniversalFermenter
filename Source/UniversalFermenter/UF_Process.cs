@@ -31,6 +31,7 @@ namespace UniversalFermenter
         public QualityDays qualityDays = new QualityDays(1, 0, 0, 0, 0, 0, 0);
         public bool colorCoded = false;
         public Color color = new Color(1.0f, 1.0f, 1.0f);
+        public string customLabel = "";
 
 		public void ResolveReferences()
 		{			

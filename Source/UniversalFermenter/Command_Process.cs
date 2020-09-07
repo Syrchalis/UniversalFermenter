@@ -23,7 +23,7 @@ namespace UniversalFermenter
                 {
                     floatMenuOptions.Add(
                         new FloatMenuOption(
-                            process.thingDef.LabelCap,
+                            process.customLabel != "" ? process.customLabel : process.thingDef.label.CapitalizeFirst(),
                             () => ChangeProcess(processToTarget, process),
                             UF_Utility.GetIcon(process.thingDef, UF_Settings.singleItemIcon),
                             Color.white,

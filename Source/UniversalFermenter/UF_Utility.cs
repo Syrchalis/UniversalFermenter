@@ -111,7 +111,7 @@ namespace UniversalFermenter
                     {
                         Command_Process command_Process = new Command_Process
                         {
-                            defaultLabel = process.thingDef.label,
+                            defaultLabel = process.customLabel != "" ? process.customLabel : process.thingDef.label,
                             defaultDesc = "UF_NextDesc".Translate(process.thingDef.label, IngredientFilterSummary(process.ingredientFilter)),
                             //activateSound = SoundDefOf.Tick_Tiny,
                             icon = GetIcon(process.thingDef, UF_Settings.singleItemIcon),

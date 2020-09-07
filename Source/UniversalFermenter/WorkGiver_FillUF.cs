@@ -9,9 +9,6 @@ namespace UniversalFermenter
 {
     public class WorkGiver_FillUF : WorkGiver_Scanner
     {
-        private static string TemperatureTrans;
-        private static string NoIngredientTrans;
-
         public override PathEndMode PathEndMode => PathEndMode.Touch;
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
@@ -30,12 +27,6 @@ namespace UniversalFermenter
             return 0f;
         }
 
-        public static void Reset()
-        {
-            TemperatureTrans = "BadTemperature".Translate().ToLower();
-            NoIngredientTrans = "UF_NoIngredient".Translate();
-        }
-
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
             CompUniversalFermenter comp = t.TryGetComp<CompUniversalFermenter>();
@@ -48,7 +39,7 @@ namespace UniversalFermenter
             if (ambientTemperature < comp.CurrentProcess.temperatureSafe.min + 2f ||
                 ambientTemperature > comp.CurrentProcess.temperatureSafe.max - 2f)
             {
-                JobFailReason.Is(TemperatureTrans);
+                JobFailReason.Is("BadTemperature".Translate().ToLower());
                 return false;
             }
 
@@ -64,7 +55,7 @@ namespace UniversalFermenter
 
             if (FindIngredient(pawn, t) == null)
             {
-                JobFailReason.Is(NoIngredientTrans);
+                JobFailReason.Is("UF_NoIngredient".Translate());
                 return false;
             }
 
