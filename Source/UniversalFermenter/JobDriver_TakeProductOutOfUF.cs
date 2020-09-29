@@ -1,41 +1,26 @@
 ﻿using System.Collections.Generic;
-
 using RimWorld;
 using Verse;
 using Verse.AI;
 
 namespace UniversalFermenter
 {
-
-	public class JobDriver_TakeProductOutOfUF : JobDriver
+    public class JobDriver_TakeProductOutOfUF : JobDriver
 	{
-
-		private const TargetIndex FermenterInd = TargetIndex.A;
+        private const TargetIndex FermenterInd = TargetIndex.A;
 		private const TargetIndex ProductToHaulInd = TargetIndex.B;
 		private const TargetIndex StorageCellInd = TargetIndex.C;
 		private const int Duration = 200;
 
-		protected Thing Fermenter
-		{
-			get
-			{
-				//return CurJob.GetTarget(TargetIndex.A).Thing;
-				return this.job.GetTarget(TargetIndex.A).Thing;
-			}
-		}
+        //return CurJob.GetTarget(TargetIndex.A).Thing;
+		protected Thing Fermenter => job.GetTarget(TargetIndex.A).Thing;
 
-		protected Thing Product
-		{
-			get
-			{
-				//return CurJob.GetTarget(TargetIndex.B).Thing;
-				return this.job.GetTarget(TargetIndex.B).Thing;
-			}
-		}
+        //return CurJob.GetTarget(TargetIndex.B).Thing;
+        protected Thing Product => job.GetTarget(TargetIndex.B).Thing;
 
-		public override bool TryMakePreToilReservations(bool errorOnFailed)
+        public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-			return this.pawn.Reserve(this.Fermenter, this.job, 1, -1, null);
+			return pawn.Reserve(Fermenter, job);
 		}
 
 		protected override IEnumerable<Toil> MakeNewToils()
@@ -55,29 +40,30 @@ namespace UniversalFermenter
 			yield return Toils_General.Wait(Duration).FailOnDestroyedNullOrForbidden(FermenterInd).WithProgressBarToilDelay(FermenterInd);
 
 			// Collect product
-			Toil collect = new Toil();
-			collect.initAction = () =>
-			{
-				Thing product = comp.TakeOutProduct();
-				GenPlace.TryPlaceThing(product, pawn.Position, Map, ThingPlaceMode.Near);
-				StoragePriority storagePriority = StoreUtility.CurrentStoragePriorityOf(product);
-                IntVec3 c;
+            Toil collect = new Toil
+            {
+                initAction = () =>
+                {
+                    Thing product = comp.TakeOutProduct();
+                    GenPlace.TryPlaceThing(product, pawn.Position, Map, ThingPlaceMode.Near);
+                    StoragePriority storagePriority = StoreUtility.CurrentStoragePriorityOf(product);
 
-				// Try to find a suitable storage spot for the product
-				if (StoreUtility.TryFindBestBetterStoreCellFor(product, pawn, Map, storagePriority, pawn.Faction, out c))
-				{
-					this.job.SetTarget(TargetIndex.B, product);
-					this.job.count = product.stackCount;
-					this.job.SetTarget(TargetIndex.C, c);
-				}
-				// If there is no spot to store the product, end this job
-				else
-				{
-					EndJobWith(JobCondition.Incompletable);
-				}
-			};
-			collect.defaultCompleteMode = ToilCompleteMode.Instant;
-			yield return collect;
+                    // Try to find a suitable storage spot for the product
+                    if (StoreUtility.TryFindBestBetterStoreCellFor(product, pawn, Map, storagePriority, pawn.Faction, out IntVec3 c))
+                    {
+                        job.SetTarget(TargetIndex.B, product);
+                        job.count = product.stackCount;
+                        job.SetTarget(TargetIndex.C, c);
+                    }
+                    // If there is no spot to store the product, end this job
+                    else
+                    {
+                        EndJobWith(JobCondition.Incompletable);
+                    }
+                },
+                defaultCompleteMode = ToilCompleteMode.Instant
+            };
+            yield return collect;
 
 			// Reserve the product
 			yield return Toils_Reserve.Reserve(ProductToHaulInd);
@@ -95,9 +81,6 @@ namespace UniversalFermenter
 			Toil carry = Toils_Haul.CarryHauledThingToCell(StorageCellInd);
 			yield return carry;
 			yield return Toils_Haul.PlaceHauledThingInCell(StorageCellInd, carry, true);
-
-			// End the current job
-			yield break;
-		}
+        }
 	}
 }

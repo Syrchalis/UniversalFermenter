@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.Text;
-using System.Linq;
 using UnityEngine;
 using RimWorld;
 using Verse;
@@ -22,7 +21,7 @@ namespace UniversalFermenter
         private int ingredientCount;
         private List<string> ingredientLabels = new List<string>();
         public List<ThingDef> inputIngredients = new List<ThingDef>();
-        public bool graphicChangeQueued = false;
+        public bool graphicChangeQueued;
 
         public CompRefuelable refuelComp;
         public CompPowerTrader powerTradeComp;
@@ -172,19 +171,13 @@ namespace UniversalFermenter
             {
                 if (barFilledCachedMat == null)
                 {
-                    barFilledCachedMat = SolidColorMaterials.SimpleSolidColorMaterial(Color.Lerp(Static_Bar.ZeroProgressColor, Static_Bar.FermentedColor, ProgressPercent), false);
+                    barFilledCachedMat = SolidColorMaterials.SimpleSolidColorMaterial(Color.Lerp(Static_Bar.ZeroProgressColor, Static_Bar.FermentedColor, ProgressPercent));
                 }
                 return barFilledCachedMat;
             }
         }
 
-        public float CurrentSpeedFactor
-        {
-            get
-            {
-                return Mathf.Max(CurrentTemperatureFactor * CurrentSunFactor * CurrentRainFactor * CurrentSnowFactor * CurrentWindFactor, 0f);
-            }
-        }
+        public float CurrentSpeedFactor => Mathf.Max(CurrentTemperatureFactor * CurrentSunFactor * CurrentRainFactor * CurrentSnowFactor * CurrentWindFactor, 0f);
 
         private float CurrentTemperatureFactor
         {
@@ -321,7 +314,7 @@ namespace UniversalFermenter
                         roofedTiles++;
                     }
                 }
-                return (float)roofedTiles / (float)allTiles;
+                return roofedTiles / (float)allTiles;
             }
         }
         
@@ -348,11 +341,10 @@ namespace UniversalFermenter
                 {
                     summary += CurrentProcess.ingredientFilter.Summary;
                 }
-                int substractLength;
-                int maxSummaryLength;
-                int lineLength = 60;
-                substractLength = ("Contains " + CurrentProcess.maxCapacity.ToString() + "/" + CurrentProcess.maxCapacity.ToString() + " ").Length;
-                maxSummaryLength = lineLength - substractLength;
+
+                const int lineLength = 60;
+                int substractLength = ("Contains " + CurrentProcess.maxCapacity.ToString() + "/" + CurrentProcess.maxCapacity.ToString() + " ").Length;
+                int maxSummaryLength = lineLength - substractLength;
                 return UF_Utility.VowelTrim(summary, maxSummaryLength);
             }
         }
@@ -390,11 +382,11 @@ namespace UniversalFermenter
         
         public override void PostExposeData()
         {
-            Scribe_Values.Look(ref ruinedPercent, "ruinedPercent", 0f);
-            Scribe_Values.Look(ref ingredientCount, "UF_UniversalFermenter_IngredientCount", 0);
-            Scribe_Values.Look(ref progressTicks, "UF_progressTicks", 0);
-            Scribe_Values.Look(ref currentProcessIndex, "UF_currentResourceInd", 0);
-            Scribe_Values.Look(ref queuedProcessIndex, "UF_queuedProcessIndex", 0);
+            Scribe_Values.Look(ref ruinedPercent, "ruinedPercent");
+            Scribe_Values.Look(ref ingredientCount, "UF_UniversalFermenter_IngredientCount");
+            Scribe_Values.Look(ref progressTicks, "UF_progressTicks");
+            Scribe_Values.Look(ref currentProcessIndex, "UF_currentResourceInd");
+            Scribe_Values.Look(ref queuedProcessIndex, "UF_queuedProcessIndex");
             Scribe_Values.Look(ref targetQuality, "targetQuality", QualityCategory.Normal);
             Scribe_Collections.Look(ref ingredientLabels, "UF_ingredientLabels");
         }
@@ -451,7 +443,7 @@ namespace UniversalFermenter
                 {
                     drawPos.y += 0.02f;
                     drawPos.x += 0.45f * Props.barScale.x;
-                    Matrix4x4 matrix2 = default(Matrix4x4);
+                    Matrix4x4 matrix2 = default;
                     matrix2.SetTRS(drawPos, Quaternion.identity, new Vector3(0.2f * Props.barScale.x, 1f, 0.2f * Props.barScale.y));
                     Graphics.DrawMesh(MeshPool.plane10, matrix2, UF_Utility.qualityMaterials[CurrentQuality], 0);
                 }
@@ -465,7 +457,7 @@ namespace UniversalFermenter
                 {
                     drawPos.y += 0.02f;
                     drawPos.z += 0.05f;
-                    Matrix4x4 matrix = default(Matrix4x4);
+                    Matrix4x4 matrix = default;
                     matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(0.6f * sizeX, 1f, 0.6f * sizeZ));
                     Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.qualityMaterials[TargetQuality], 0);
                 }
@@ -473,7 +465,7 @@ namespace UniversalFermenter
                 {
                     drawPos.y += 0.02f;
                     drawPos.z += 0.05f;
-                    Matrix4x4 matrix = default(Matrix4x4);
+                    Matrix4x4 matrix = default;
                     matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(sizeX, 1f, sizeZ));
                     Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.processMaterials[CurrentProcess], 0);
                     if (CurrentProcess.usesQuality && UF_Settings.showTargetQualityIcon) // show small offset quality icon if object also uses quality
@@ -481,7 +473,7 @@ namespace UniversalFermenter
                         drawPos.y += 0.01f;
                         drawPos.x += 0.25f * sizeX;
                         drawPos.z -= 0.35f * sizeZ;
-                        Matrix4x4 matrix2 = default(Matrix4x4);
+                        Matrix4x4 matrix2 = default;
                         matrix2.SetTRS(drawPos, Quaternion.identity, new Vector3(0.4f * sizeX, 1f, 0.4f * sizeZ));
                         Graphics.DrawMesh(MeshPool.plane10, matrix2, UF_Utility.qualityMaterials[TargetQuality], 0);
                     }
@@ -491,7 +483,7 @@ namespace UniversalFermenter
 
         public override void PreAbsorbStack(Thing otherStack, int count)
         {
-            float t = (float)count / (float)(parent.stackCount + count);
+            float t = count / (float)(parent.stackCount + count);
             CompUniversalFermenter comp = ((ThingWithComps)otherStack).GetComp<CompUniversalFermenter>();
             ruinedPercent = Mathf.Lerp(ruinedPercent, comp.ruinedPercent, t);
         }
@@ -565,14 +557,13 @@ namespace UniversalFermenter
             // 5th line: "Ideal/safe temperature range"
             if (CurrentProcess.usesTemperature)
             {
-                stringBuilder.AppendLine(string.Concat(new string[]
-                {
+                stringBuilder.AppendLine(string.Concat(
                     "UF_IdealSafeProductionTemperature".Translate(),": ",
                     CurrentProcess.temperatureIdeal.min.ToStringTemperature("F0"),"~",
                     CurrentProcess.temperatureIdeal.max.ToStringTemperature("F0"), " (",
                     CurrentProcess.temperatureSafe.min.ToStringTemperature("F0"), "~",
                     CurrentProcess.temperatureSafe.max.ToStringTemperature("F0"), ")"
-                }));
+                ));
             }
 
             return stringBuilder.ToString().TrimEndNewlines();
@@ -606,7 +597,7 @@ namespace UniversalFermenter
                     float ambientTemperature = parent.AmbientTemperature;
                     if (ambientTemperature > CurrentProcess.temperatureSafe.max)
                     {
-                        ruinedPercent += (ambientTemperature - CurrentProcess.temperatureSafe.max) * (CurrentProcess.ruinedPerDegreePerHour / 250000f) * (float)ticks;
+                        ruinedPercent += (ambientTemperature - CurrentProcess.temperatureSafe.max) * (CurrentProcess.ruinedPerDegreePerHour / 250000f) * ticks;
                     }
                     else if (ambientTemperature < CurrentProcess.temperatureSafe.min)
                     {

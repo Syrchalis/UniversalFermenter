@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using RimWorld;
 using Verse;
@@ -26,13 +24,7 @@ namespace UniversalFermenter
                             process.customLabel != "" ? process.customLabel : process.thingDef.label.CapitalizeFirst(),
                             () => ChangeProcess(processToTarget, process),
                             UF_Utility.GetIcon(process.thingDef, UF_Settings.singleItemIcon),
-                            Color.white,
-                            MenuOptionPriority.Default,
-                            null,
-                            null,
-                            0f,
-                            null,
-                            null
+                            Color.white
                         )
                     );
                 }
@@ -71,13 +63,7 @@ namespace UniversalFermenter
                             quality.GetLabel(),
                             () => ChangeQuality(qualityToTarget,quality),
                             (Texture2D)UF_Utility.qualityMaterials[quality].mainTexture,
-                            Color.white,
-                            MenuOptionPriority.Default,
-                            null,
-                            null,
-                            0f,
-                            null,
-                            null
+                            Color.white
                         )
                     );
                 }

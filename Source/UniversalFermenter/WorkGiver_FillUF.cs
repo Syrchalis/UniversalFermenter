@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -22,7 +21,7 @@ namespace UniversalFermenter
             CompUniversalFermenter comp = t.Thing.TryGetComp<CompUniversalFermenter>();
             if (comp != null)
             {
-                return 1 / comp.SpaceLeftForIngredient;
+                return 1.0f / comp.SpaceLeftForIngredient;
             }
             return 0f;
         }
@@ -69,11 +68,11 @@ namespace UniversalFermenter
             return new Job(UF_DefOf.FillUniversalFermenter, t, t2);
         }
 
-        private Thing FindIngredient(Pawn pawn, Thing fermenter)
+        private static Thing FindIngredient(Pawn pawn, Thing fermenter)
         {
             ThingFilter filter = fermenter.TryGetComp<CompUniversalFermenter>().CurrentProcess.ingredientFilter;
-            Predicate<Thing> validator = x => !x.IsForbidden(pawn) && pawn.CanReserve(x) && filter.Allows(x);
-            return GenClosest.ClosestThingReachable(pawn.Position, pawn.Map, filter.BestThingRequest, PathEndMode.ClosestTouch, TraverseParms.For(pawn), 9999f, validator);
+            bool Validator(Thing x) => !x.IsForbidden(pawn) && pawn.CanReserve(x) && filter.Allows(x);
+            return GenClosest.ClosestThingReachable(pawn.Position, pawn.Map, filter.BestThingRequest, PathEndMode.ClosestTouch, TraverseParms.For(pawn), 9999f, Validator);
         }
     }
 }

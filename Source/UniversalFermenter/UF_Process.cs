@@ -35,7 +35,7 @@ namespace UniversalFermenter
 
 		public void ResolveReferences()
 		{			
-			this.ingredientFilter.ResolveReferences();			
+			ingredientFilter.ResolveReferences();			
 		}
 	}
 
@@ -62,18 +62,9 @@ namespace UniversalFermenter
             else
             {
                 string str = xmlRoot.FirstChild.Value;
-                str = str.TrimStart(new char[]
-                {
-                    '('
-                });
-                str = str.TrimEnd(new char[]
-                {
-                    ')'
-                });
-                string[] array = str.Split(new char[]
-                {
-                    ','
-                });
+                str = str.TrimStart('(');
+                str = str.TrimEnd(')');
+                string[] array = str.Split(',');
                 CultureInfo invariantCulture = CultureInfo.InvariantCulture;
                 awful = Convert.ToSingle(array[0], invariantCulture);
                 poor = Convert.ToSingle(array[1], invariantCulture);

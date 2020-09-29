@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using RimWorld;
 using Verse;
@@ -13,7 +12,7 @@ namespace UniversalFermenter
     
     public class MapComponent_UF : MapComponent
     {
-        [Unsaved(false)]
+        [Unsaved]
         public List<ThingWithComps> thingsWithUFComp = new List<ThingWithComps>();
 
         public MapComponent_UF(Map map) : base(map)
@@ -185,15 +184,12 @@ namespace UniversalFermenter
                 defaultDesc = "Opens a float menu with debug options.",
                 icon = ContentFinder<Texture2D>.Get("UI/DebugGoose"),
                 iconAngle = gooseAngle,
-                iconDrawScale = 1.25f
-            };
-            gizmo.action = () =>
-            {
-                FloatMenu floatMenu = new FloatMenu(DebugOptions())
+                iconDrawScale = 1.25f,
+                action = () =>
                 {
-                    vanishIfMouseDistant = true,
-                };
-                Find.WindowStack.Add(floatMenu);
+                    FloatMenu floatMenu = new FloatMenu(DebugOptions()) { vanishIfMouseDistant = true, };
+                    Find.WindowStack.Add(floatMenu);
+                }
             };
             return gizmo;
         }
@@ -202,7 +198,7 @@ namespace UniversalFermenter
         {
             List<FloatMenuOption> floatMenuOptions = new List<FloatMenuOption>();
             IEnumerable<ThingWithComps> things = Find.Selector.SelectedObjects.OfType<ThingWithComps>().Where(t => t.GetComp<CompUniversalFermenter>() != null);
-            IEnumerable<CompUniversalFermenter> comps = things.Select(t => t.TryGetComp<CompUniversalFermenter>());
+            IEnumerable<CompUniversalFermenter> comps = things.Select(t => t.TryGetComp<CompUniversalFermenter>()).ToList();
 
             if (comps.Any(c => !c.Empty && !c.Finished))
             {
@@ -228,15 +224,14 @@ namespace UniversalFermenter
 
         internal static void FinishProcess(IEnumerable<CompUniversalFermenter> comps)
         {
-            foreach (CompUniversalFermenter comp in comps) {
-                if (comp.CurrentProcess.usesQuality) {
-                    comp.ProgressTicks = Mathf.RoundToInt(comp.DaysToReachTargetQuality * GenDate.TicksPerDay);
-                } else {
-                    comp.ProgressTicks = Mathf.RoundToInt(comp.CurrentProcess.processDays * GenDate.TicksPerDay);
-                }
+            foreach (CompUniversalFermenter comp in comps)
+            {
+                comp.ProgressTicks = comp.CurrentProcess.usesQuality
+                    ? Mathf.RoundToInt(comp.DaysToReachTargetQuality * GenDate.TicksPerDay)
+                    : Mathf.RoundToInt(comp.CurrentProcess.processDays * GenDate.TicksPerDay);
             }
             gooseAngle = Rand.Range(0, 360);
-            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+            UF_DefOf.UF_Honk.PlayOneShotOnCamera();
         }
 
         internal static void ProgressOneDay(IEnumerable<CompUniversalFermenter> comps)
@@ -245,7 +240,7 @@ namespace UniversalFermenter
                 comp.ProgressTicks += GenDate.TicksPerDay;
             }
             gooseAngle = Rand.Range(0, 360);
-            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+            UF_DefOf.UF_Honk.PlayOneShotOnCamera();
         }
 
         internal static void ProgressHalfQuadrum(IEnumerable<CompUniversalFermenter> comps)
@@ -254,7 +249,7 @@ namespace UniversalFermenter
                 comp.ProgressTicks += GenDate.TicksPerQuadrum / 2;
             }
             gooseAngle = Rand.Range(0, 360);
-            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+            UF_DefOf.UF_Honk.PlayOneShotOnCamera();
         }
 
         internal static void EmptyObject(IEnumerable<CompUniversalFermenter> comps)
@@ -266,7 +261,7 @@ namespace UniversalFermenter
                 }
             }
             gooseAngle = Rand.Range(0, 360);
-            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+            UF_DefOf.UF_Honk.PlayOneShotOnCamera();
         }
 
         internal static void FillObject(IEnumerable<CompUniversalFermenter> comps)
@@ -280,7 +275,7 @@ namespace UniversalFermenter
                     }
                 }
                 gooseAngle = Rand.Range(0, 360);
-                SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+                UF_DefOf.UF_Honk.PlayOneShotOnCamera();
             }
         }
 
@@ -289,7 +284,7 @@ namespace UniversalFermenter
             foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>()) {
                 CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
                 if (comp != null) {
-                    Log.Message(comp.parent.ToString() + ": " +
+                    Log.Message(comp.parent + ": " +
                             "sun: " + comp.CurrentSunFactor.ToStringPercent() +
                             "| rain: " + comp.CurrentRainFactor.ToStringPercent() +
                             "| snow: " + comp.CurrentSnowFactor.ToStringPercent() +
@@ -298,7 +293,7 @@ namespace UniversalFermenter
                 }
             }
             gooseAngle = Rand.Range(0, 360);
-            SoundStarter.PlayOneShotOnCamera(UF_DefOf.UF_Honk);
+            UF_DefOf.UF_Honk.PlayOneShotOnCamera();
         }
 
         public static string IngredientFilterSummary(ThingFilter thingFilter)
@@ -314,18 +309,11 @@ namespace UniversalFermenter
                 if (vowelsToRemove <= 0)
                     break;
 
-                if (IsVowel(str[i]))
-                {
-                    if (str[i - 1] == ' ')
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        str = str.Remove(i, 1);
-                        vowelsToRemove--;
-                    }
-                }
+                if (!IsVowel(str[i]) || str[i - 1] == ' ')
+                    continue;
+
+                str = str.Remove(i, 1);
+                vowelsToRemove--;
             }
 
             if (str.Length > limit)
@@ -352,7 +340,7 @@ namespace UniversalFermenter
                 icon = singleStack ? ContentFinder<Texture2D>.GetAllInFolder(thingDef.graphicData.texPath).FirstOrDefault() : ContentFinder<Texture2D>.GetAllInFolder(thingDef.graphicData.texPath).LastOrDefault();
                 if (icon == null)
                 {
-                    icon = ContentFinder<Texture2D>.Get("UI/Commands/LaunchReport", true);
+                    icon = ContentFinder<Texture2D>.Get("UI/Commands/LaunchReport");
                     Log.Warning("Universal Fermenter:: No texture at " + thingDef.graphicData.texPath + ".");
                 }
             }

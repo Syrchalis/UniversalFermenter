@@ -1,38 +1,22 @@
 ﻿using System.Collections.Generic;
-
-using RimWorld;
 using Verse;
 using Verse.AI;
 
 namespace UniversalFermenter
 {
-
-	public class JobDriver_FillUF : JobDriver
+    public class JobDriver_FillUF : JobDriver
 	{
-
-		private const TargetIndex FermenterInd = TargetIndex.A;
+        private const TargetIndex FermenterInd = TargetIndex.A;
 		private const TargetIndex IngredientInd = TargetIndex.B;
 		private const int Duration = 200;
 
-		protected Thing Fermenter
-		{
-			get
-			{
-				return this.job.GetTarget(TargetIndex.A).Thing;
-			}
-		}
+		protected Thing Fermenter => job.GetTarget(TargetIndex.A).Thing;
 
-		protected Thing Ingredient
-		{
-			get
-			{
-				return this.job.GetTarget(TargetIndex.B).Thing;
-			}
-		}
+        protected Thing Ingredient => job.GetTarget(TargetIndex.B).Thing;
 
-		public override bool TryMakePreToilReservations(bool errorOnFailed)
+        public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
-			return this.pawn.Reserve(this.Fermenter, this.job, 1, -1, null, errorOnFailed) && this.pawn.Reserve(this.Ingredient, this.job, 1, -1, null, errorOnFailed);
+			return pawn.Reserve(Fermenter, job, 1, -1, null, errorOnFailed) && pawn.Reserve(Ingredient, job, 1, -1, null, errorOnFailed);
 		}
 
 		protected override IEnumerable<Toil> MakeNewToils()
@@ -42,7 +26,7 @@ namespace UniversalFermenter
 			// Verify fermenter and ingredient validity
 			this.FailOnDespawnedNullOrForbidden(FermenterInd);
 			this.FailOnBurningImmobile(FermenterInd);
-            base.AddEndCondition(delegate
+            AddEndCondition(delegate
             {
                 if (comp.SpaceLeftForIngredient > 0)
                 {
@@ -61,7 +45,7 @@ namespace UniversalFermenter
 
 			yield return Toils_Goto.GotoThing(IngredientInd, PathEndMode.ClosestTouch).FailOnDespawnedNullOrForbidden(IngredientInd).FailOnSomeonePhysicallyInteracting(IngredientInd);
 
-			yield return Toils_Haul.StartCarryThing(IngredientInd, false, true, false).FailOnDestroyedNullOrForbidden(IngredientInd);
+			yield return Toils_Haul.StartCarryThing(IngredientInd, false, true).FailOnDestroyedNullOrForbidden(IngredientInd);
 			yield return Toils_Haul.CheckForGetOpportunityDuplicate(reserveIngredient, IngredientInd, TargetIndex.None, true);
 
             // Carry ingredients to the fermenter
@@ -69,13 +53,13 @@ namespace UniversalFermenter
 
             // Add delay for adding ingredients to the fermenter
             yield return Toils_General.Wait(Duration, FermenterInd).FailOnDestroyedNullOrForbidden(IngredientInd).FailOnDestroyedNullOrForbidden(FermenterInd)
-                .FailOnCannotTouch(FermenterInd, PathEndMode.Touch).WithProgressBarToilDelay(FermenterInd, false, -0.5f);
+                .FailOnCannotTouch(FermenterInd, PathEndMode.Touch).WithProgressBarToilDelay(FermenterInd);
 
             // Use ingredients
             // The UniversalFermenter automatically destroys held ingredients
             yield return new Toil
             {
-                initAction = delegate ()
+                initAction = delegate
                 {
                     comp.AddIngredient(Ingredient);
                 },

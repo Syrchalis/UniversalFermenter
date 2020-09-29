@@ -4,8 +4,7 @@ using UnityEngine;
 
 namespace UniversalFermenter
 {
-
-	public class CompProperties_UniversalFermenter : CompProperties
+    public class CompProperties_UniversalFermenter : CompProperties
 	{
 		public List<UF_Process> products = new List<UF_Process>();
         public List<UF_Process> processes = new List<UF_Process>();
@@ -20,12 +19,12 @@ namespace UniversalFermenter
 		}
 
 		public override void ResolveReferences(ThingDef parentDef)
-		{
-			base.ResolveReferences(parentDef);
-			for (int i = 0; i < this.processes.Count; i++)
-			{				
-				this.processes[i].ResolveReferences();
-			}
-		}
+        {
+            base.ResolveReferences(parentDef);
+            foreach (UF_Process process in processes)
+            {
+                process.ResolveReferences();
+            }
+        }
 	}
 }
