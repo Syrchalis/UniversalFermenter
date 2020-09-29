@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -16,14 +15,11 @@ namespace UniversalFermenter
         }
 
         public override bool Prioritized => true;
+
         public override float GetPriority(Pawn pawn, TargetInfo t)
         {
             CompUniversalFermenter comp = t.Thing.TryGetComp<CompUniversalFermenter>();
-            if (comp != null)
-            {
-                return 1.0f / comp.SpaceLeftForIngredient;
-            }
-            return 0f;
+            return 1.0f / comp?.SpaceLeftForIngredient ?? 0f;
         }
 
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)

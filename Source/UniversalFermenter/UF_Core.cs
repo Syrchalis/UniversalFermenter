@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿#nullable enable
+using System.Linq;
 using System.Reflection;
 using RimWorld;
 using Verse;
@@ -8,11 +9,13 @@ namespace UniversalFermenter
 {
     public class UF_Core : Mod
     {
-        public static UF_Settings settings;
+        public static UF_Settings settings = null!;
+
         public UF_Core(ModContentPack content) : base(content)
         {
             settings = GetSettings<UF_Settings>();
         }
+
         public override string SettingsCategory() => "UF_SettingsCategory".Translate();
 
         public override void DoSettingsWindowContents(Rect inRect)
@@ -23,7 +26,7 @@ namespace UniversalFermenter
                 listing_Standard.Begin(inRect);
                 listing_Standard.CheckboxLabeled("UF_ShowProcessIcon".Translate(), ref UF_Settings.showProcessIconGlobal, "UF_ShowProcessIconTooltip".Translate());
                 listing_Standard.Gap();
-                listing_Standard.Label("UF_ProcessIconSize".Translate() +  ": " + UF_Settings.processIconSize.ToStringByStyle(ToStringStyle.PercentZero), -1, "UF_ProcessIconSizeTooltip".Translate());
+                listing_Standard.Label("UF_ProcessIconSize".Translate() + ": " + UF_Settings.processIconSize.ToStringByStyle(ToStringStyle.PercentZero), -1, "UF_ProcessIconSizeTooltip".Translate());
                 UF_Settings.processIconSize = listing_Standard.Slider(GenMath.RoundTo(UF_Settings.processIconSize, 0.05f), 0.2f, 1f);
                 listing_Standard.CheckboxLabeled("UF_SingleItemIcon".Translate(), ref UF_Settings.singleItemIcon, "UF_SingleItemIconTooltip".Translate());
                 listing_Standard.Gap();
@@ -39,6 +42,7 @@ namespace UniversalFermenter
                 {
                     ReplaceVanillaBarrels();
                 }
+
                 listing_Standard.GapLine(30);
                 Rect rectDefaultSettings = listing_Standard.GetRect(30f);
                 TooltipHandler.TipRegion(rectDefaultSettings, "UF_DefaultSettingsTooltip".Translate());
@@ -51,6 +55,7 @@ namespace UniversalFermenter
                     UF_Settings.showCurrentQualityIcon = true;
                     UF_Settings.showTargetQualityIcon = false;
                 }
+
                 listing_Standard.End();
                 settings.Write();
             }
@@ -68,6 +73,7 @@ namespace UniversalFermenter
             {
                 return;
             }
+
             foreach (Map map in Find.Maps)
             {
                 foreach (Thing thing in map.listerThings.ThingsOfDef(ThingDefOf.FermentingBarrel).ToList())
@@ -86,6 +92,7 @@ namespace UniversalFermenter
                             fillCount = 25 - oldBarrel.SpaceLeftForWort;
                         }
                     }
+
                     Thing newBarrel = ThingMaker.MakeThing(UF_DefOf.UniversalFermenter, stuff);
                     GenSpawn.Spawn(newBarrel, position, map);
                     if (inUse)
@@ -95,12 +102,13 @@ namespace UniversalFermenter
                         Thing wort = ThingMaker.MakeThing(ThingDefOf.Wort);
                         wort.stackCount = fillCount;
                         compUF.AddIngredient(wort);
-                        compUF.ProgressTicks = (int)(360000 * progress);
+                        compUF.ProgressTicks = (int) (360000 * progress);
                     }
                 }
+
                 foreach (Thing thing in map.listerThings.ThingsOfDef(ThingDefOf.MinifiedThing).Where(t => t.GetInnerIfMinified().def == ThingDefOf.FermentingBarrel))
                 {
-                    MinifiedThing minifiedThing = (MinifiedThing)thing;
+                    MinifiedThing minifiedThing = (MinifiedThing) thing;
                     ThingDef stuff = minifiedThing.InnerThing.Stuff ?? ThingDefOf.WoodLog;
                     minifiedThing.InnerThing = null;
                     Thing newBarrel = ThingMaker.MakeThing(UF_DefOf.UniversalFermenter, stuff);
@@ -109,6 +117,7 @@ namespace UniversalFermenter
                 }
             }
         }
+
         public static FieldInfo cachedGraphic = typeof(MinifiedThing).GetField("cachedGraphic", BindingFlags.NonPublic | BindingFlags.Instance);
     }
 
@@ -120,6 +129,7 @@ namespace UniversalFermenter
         public static bool showTargetQualityIcon;
         public static bool singleItemIcon = true;
         public static bool sortAlphabetically;
+
         public override void ExposeData()
         {
             base.ExposeData();

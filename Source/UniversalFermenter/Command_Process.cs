@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -9,7 +10,8 @@ namespace UniversalFermenter
 {
     public class Command_Process : Command_Action
     {
-        public UF_Process processToTarget;
+        public UF_Process? processToTarget;
+
         public List<UF_Process> processOptions = new List<UF_Process>();
 
         public override IEnumerable<FloatMenuOption> RightClickFloatMenuOptions
@@ -21,26 +23,30 @@ namespace UniversalFermenter
                 {
                     floatMenuOptions.Add(
                         new FloatMenuOption(
-                            process.customLabel != "" ? process.customLabel : process.thingDef.label.CapitalizeFirst(),
+                            process.customLabel != "" ? process.customLabel : process.thingDef?.label.CapitalizeFirst(),
                             () => ChangeProcess(processToTarget, process),
                             UF_Utility.GetIcon(process.thingDef, UF_Settings.singleItemIcon),
                             Color.white
                         )
                     );
                 }
+
                 if (UF_Settings.sortAlphabetically)
                 {
                     floatMenuOptions.SortBy(fmo => fmo.Label);
                 }
+
                 return floatMenuOptions;
             }
         }
 
-        internal static void ChangeProcess(UF_Process processToTarget, UF_Process process)
+        internal static void ChangeProcess(UF_Process? processToTarget, UF_Process process)
         {
-            foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>()) {
+            foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
+            {
                 CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                if (comp != null && comp.CurrentProcess == processToTarget) {
+                if (comp != null && comp.CurrentProcess == processToTarget)
+                {
                     comp.CurrentProcess = process;
                 }
             }
@@ -61,21 +67,24 @@ namespace UniversalFermenter
                     qualityfloatMenuOptions.Add(
                         new FloatMenuOption(
                             quality.GetLabel(),
-                            () => ChangeQuality(qualityToTarget,quality),
-                            (Texture2D)UF_Utility.qualityMaterials[quality].mainTexture,
+                            () => ChangeQuality(qualityToTarget, quality),
+                            (Texture2D) UF_Utility.qualityMaterials[quality].mainTexture,
                             Color.white
                         )
                     );
                 }
+
                 return qualityfloatMenuOptions;
             }
         }
 
         internal static void ChangeQuality(QualityCategory qualityToTarget, QualityCategory quality)
         {
-            foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>()) {
+            foreach (Thing thing in Find.Selector.SelectedObjects.OfType<Thing>())
+            {
                 CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
-                if (comp != null && comp.CurrentProcess.usesQuality && comp.TargetQuality == qualityToTarget) {
+                if (comp != null && comp.CurrentProcess.usesQuality && comp.TargetQuality == qualityToTarget)
+                {
                     comp.TargetQuality = quality;
                 }
             }
