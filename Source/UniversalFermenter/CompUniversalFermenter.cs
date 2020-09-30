@@ -4,8 +4,8 @@
 #nullable enable
 using System.Collections.Generic;
 using System.Text;
-using UnityEngine;
 using RimWorld;
+using UnityEngine;
 using Verse;
 
 namespace UniversalFermenter
@@ -233,7 +233,8 @@ namespace UniversalFermenter
                 {
                     return CurrentProcess.speedBelowSafe;
                 }
-                else if (ambientTemperature > CurrentProcess.temperatureSafe.max)
+
+                if (ambientTemperature > CurrentProcess.temperatureSafe.max)
                 {
                     return CurrentProcess.speedAboveSafe;
                 }
@@ -243,7 +244,8 @@ namespace UniversalFermenter
                 {
                     return GenMath.LerpDouble(CurrentProcess.temperatureSafe.min, CurrentProcess.temperatureIdeal.min, CurrentProcess.speedBelowSafe, 1f, ambientTemperature);
                 }
-                else if (ambientTemperature > CurrentProcess.temperatureIdeal.max)
+
+                if (ambientTemperature > CurrentProcess.temperatureIdeal.max)
                 {
                     return GenMath.LerpDouble(CurrentProcess.temperatureIdeal.max, CurrentProcess.temperatureSafe.max, 1f, CurrentProcess.speedAboveSafe, ambientTemperature);
                 }
@@ -397,7 +399,7 @@ namespace UniversalFermenter
                 }
 
                 const int lineLength = 60;
-                int substractLength = ("Contains " + CurrentProcess.maxCapacity.ToString() + "/" + CurrentProcess.maxCapacity.ToString() + " ").Length;
+                int substractLength = ("Contains " + CurrentProcess.maxCapacity + "/" + CurrentProcess.maxCapacity + " ").Length;
                 int maxSummaryLength = lineLength - substractLength;
                 return UF_Utility.VowelTrim(summary, maxSummaryLength);
             }
@@ -507,7 +509,7 @@ namespace UniversalFermenter
                 }
             }
 
-            if (CurrentProcess != null && UF_Settings.showProcessIconGlobal && Props.showProductIcon)
+            if (UF_Settings.showProcessIconGlobal && Props.showProductIcon)
             {
                 Vector3 drawPos = parent.DrawPos;
                 float sizeX = UF_Settings.processIconSize * Props.productIconSize.x;

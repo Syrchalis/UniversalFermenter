@@ -17,8 +17,8 @@
     <NullableReferenceTypes>true</NullableReferenceTypes>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\..\1.1\Assemblies\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -66,7 +66,7 @@
     </Reference>
     <Reference Include="0MultiplayerAPI">
       <HintPath>..\packages\RimWorld.MultiplayerAPI.0.2.0\lib\net472\0MultiplayerAPI.dll</HintPath>
-      <Private>False</Private>
+      <Private>True</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -76,6 +76,7 @@
     <Compile Include="CompUniversalFermenter.cs" />
     <Compile Include="HarmonyPatches.cs" />
     <Compile Include="MapComponent_UF.cs" />
+    <Compile Include="QualityDays.cs" />
     <Compile Include="UF_DefOf.cs" />
     <Compile Include="JobDriver_FillUF.cs" />
     <Compile Include="JobDriver_TakeProductOutOfUF.cs" />
@@ -92,6 +93,26 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\Defs\JobDefs.xml">
+      <Link>JobDefs.xml</Link>
+    </Content>
+    <Content Include="..\..\Defs\ThingDefs_Buildings.xml">
+      <Link>ThingDefs_Buildings.xml</Link>
+    </Content>
+    <Content Include="..\..\Defs\WorkGiverDefs.xml">
+      <Link>WorkGiverDefs.xml</Link>
+    </Content>
+    <Content Include="..\..\Languages\English\Keyed\UF_Keys.xml">
+      <Link>UF_Keys.xml</Link>
+    </Content>
+    <Content Include="..\..\Patches\UF_ModPatches.xml">
+      <Link>UF_ModPatches.xml</Link>
+    </Content>
+    <Content Include="..\..\Patches\UF_Patches.xml">
+      <Link>UF_Patches.xml</Link>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

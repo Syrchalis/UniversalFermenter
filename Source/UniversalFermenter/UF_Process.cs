@@ -1,11 +1,21 @@
-using System;
-using System.Globalization;
-using System.Xml;
+#nullable enable
 using UnityEngine;
 using Verse;
 
 namespace UniversalFermenter
 {
+    public enum ProcessType
+    {
+        /// <summary>The process contains a single "stack" of items which can be added to. Valid for things like beer fermenting.</summary>
+        Single,
+
+        /// <summary>The process contains multiple stacks which each ferment individually. Valid for things like drying lumber.</summary>
+        Multiple,
+
+        /// <summary>Same as multiple, but multiple processes of type MultipleMixed can be ran at once. Valid for things like ovens.</summary>
+        MultipleMixed
+    }
+
     /// <summary>A single process the fermenter can execute, turning one item into another item after a set amount of time.</summary>
     public class UF_Process
     {
@@ -75,55 +85,12 @@ namespace UniversalFermenter
         /// <summary>Custom label to give finished products.</summary>
         public string customLabel = "";
 
+        /// <summary>The type of process being executed, Single, Multiple, or MultipleMixed.</summary>
+        public ProcessType processType = ProcessType.Single;
+
         public void ResolveReferences()
         {
             ingredientFilter.ResolveReferences();
         }
-    }
-
-    public class QualityDays
-    {
-        public QualityDays()
-        {
-        }
-
-        public QualityDays(float awful, float poor, float normal, float good, float excellent, float masterwork, float legendary)
-        {
-            this.awful = awful;
-            this.poor = poor;
-            this.normal = normal;
-            this.good = good;
-            this.excellent = excellent;
-            this.masterwork = masterwork;
-            this.legendary = legendary;
-        }
-
-        public void LoadDataFromXmlCustom(XmlNode xmlRoot)
-        {
-            if (xmlRoot.ChildNodes.Count != 1) Log.Error("UF: QualityDays configured incorrectly");
-            else
-            {
-                string str = xmlRoot.FirstChild.Value;
-                str = str.TrimStart('(');
-                str = str.TrimEnd(')');
-                string[] array = str.Split(',');
-                CultureInfo invariantCulture = CultureInfo.InvariantCulture;
-                awful = Convert.ToSingle(array[0], invariantCulture);
-                poor = Convert.ToSingle(array[1], invariantCulture);
-                normal = Convert.ToSingle(array[2], invariantCulture);
-                good = Convert.ToSingle(array[3], invariantCulture);
-                excellent = Convert.ToSingle(array[4], invariantCulture);
-                masterwork = Convert.ToSingle(array[5], invariantCulture);
-                legendary = Convert.ToSingle(array[6], invariantCulture);
-            }
-        }
-
-        public float awful;
-        public float poor;
-        public float normal;
-        public float good;
-        public float excellent;
-        public float masterwork;
-        public float legendary;
     }
 }

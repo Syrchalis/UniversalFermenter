@@ -3,8 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using UnityEngine;
 using RimWorld;
+using UnityEngine;
 using Verse;
 using Verse.Sound;
 
@@ -130,7 +130,7 @@ namespace UniversalFermenter
             qualityMaterials.Clear();
             foreach (QualityCategory quality in Enum.GetValues(typeof(QualityCategory)))
             {
-                Texture2D icon = ContentFinder<Texture2D>.Get("UI/QualityIcons/" + quality.ToString());
+                Texture2D icon = ContentFinder<Texture2D>.Get("UI/QualityIcons/" + quality);
                 Material mat = MaterialPool.MatFrom(icon);
                 qualityMaterials.Add(quality, mat);
             }
@@ -162,6 +162,7 @@ namespace UniversalFermenter
         }
 
         private static int gooseAngle = Rand.Range(0, 360);
+        private static readonly HashSet<char> Vowels = new HashSet<char> { 'a', 'e', 'i', 'o', 'u' };
 
         public static Command_Action DebugGizmo()
         {
@@ -327,8 +328,7 @@ namespace UniversalFermenter
 
         public static bool IsVowel(char c)
         {
-            var vowels = new HashSet<char> { 'a', 'e', 'i', 'o', 'u' };
-            return vowels.Contains(c);
+            return Vowels.Contains(c);
         }
 
         // Try to get a texture of a thingDef; If not found, use LaunchReport icon
@@ -337,7 +337,7 @@ namespace UniversalFermenter
             if (thingDef == null)
                 return null;
 
-            Texture2D icon = ContentFinder<Texture2D>.Get(thingDef.graphicData.texPath, false);
+            Texture2D? icon = ContentFinder<Texture2D>.Get(thingDef.graphicData.texPath, false);
             if (icon != null)
                 return icon;
 

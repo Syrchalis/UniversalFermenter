@@ -1,9 +1,10 @@
 ﻿#nullable enable
 using System.Linq;
 using System.Reflection;
+using HarmonyLib;
 using RimWorld;
-using Verse;
 using UnityEngine;
+using Verse;
 
 namespace UniversalFermenter
 {
@@ -67,7 +68,7 @@ namespace UniversalFermenter
             UF_Utility.RecacheAll();
         }
 
-        public void ReplaceVanillaBarrels()
+        public static void ReplaceVanillaBarrels()
         {
             if (Current.ProgramState != ProgramState.Playing)
             {
@@ -118,7 +119,7 @@ namespace UniversalFermenter
             }
         }
 
-        public static FieldInfo cachedGraphic = typeof(MinifiedThing).GetField("cachedGraphic", BindingFlags.NonPublic | BindingFlags.Instance);
+        public static FieldInfo cachedGraphic = AccessTools.Field(typeof(MinifiedThing), "cachedGraphic");
     }
 
     public class UF_Settings : ModSettings

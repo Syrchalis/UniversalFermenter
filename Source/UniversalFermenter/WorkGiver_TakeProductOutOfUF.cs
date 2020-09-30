@@ -9,6 +9,11 @@ namespace UniversalFermenter
     {
         public override PathEndMode PathEndMode => PathEndMode.Touch;
 
+        public override bool ShouldSkip(Pawn pawn, bool forced = false)
+        {
+            return !pawn.Map.GetComponent<MapComponent_UF>().thingsWithUFComp.Any();
+        }
+
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
             return pawn.Map.GetComponent<MapComponent_UF>().thingsWithUFComp;
@@ -17,7 +22,10 @@ namespace UniversalFermenter
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
             CompUniversalFermenter comp = t.TryGetComp<CompUniversalFermenter>();
-            return comp != null && comp.Finished && !t.IsBurning() && !t.IsForbidden(pawn) && pawn.CanReserveAndReach(t, PathEndMode.Touch, pawn.NormalMaxDanger(), 1, -1, null, forced);
+            if (comp == null || !comp.Finished || t.IsBurning() || t.IsForbidden(pawn))
+                return false;
+
+            return pawn.CanReserveAndReach(t, PathEndMode.Touch, pawn.NormalMaxDanger(), 1, -1, null, forced);
         }
 
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false)

@@ -13,11 +13,9 @@ namespace UniversalFermenter
         private const TargetIndex StorageCellInd = TargetIndex.C;
         private const int Duration = 200;
 
-        //return CurJob.GetTarget(TargetIndex.A).Thing;
-        protected Thing Fermenter => job.GetTarget(TargetIndex.A).Thing;
+        protected Thing Fermenter => job.GetTarget(FermenterInd).Thing;
 
-        //return CurJob.GetTarget(TargetIndex.B).Thing;
-        protected Thing Product => job.GetTarget(TargetIndex.B).Thing;
+        protected Thing Product => job.GetTarget(ProductToHaulInd).Thing;
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
@@ -38,7 +36,9 @@ namespace UniversalFermenter
             yield return Toils_Goto.GotoThing(FermenterInd, PathEndMode.ClosestTouch);
 
             // Add delay for collecting product from fermenter, if it is ready
-            yield return Toils_General.Wait(Duration).FailOnDestroyedNullOrForbidden(FermenterInd).WithProgressBarToilDelay(FermenterInd);
+            yield return Toils_General.Wait(Duration)
+                .FailOnDestroyedNullOrForbidden(FermenterInd)
+                .WithProgressBarToilDelay(FermenterInd);
 
             // Collect product
             Toil collect = new Toil
@@ -52,9 +52,9 @@ namespace UniversalFermenter
                     // Try to find a suitable storage spot for the product
                     if (StoreUtility.TryFindBestBetterStoreCellFor(product, pawn, Map, storagePriority, pawn.Faction, out IntVec3 c))
                     {
-                        job.SetTarget(TargetIndex.B, product);
+                        job.SetTarget(ProductToHaulInd, product);
                         job.count = product?.stackCount ?? 0;
-                        job.SetTarget(TargetIndex.C, c);
+                        job.SetTarget(StorageCellInd, c);
                     }
                     // If there is no spot to store the product, end this job
                     else
