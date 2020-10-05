@@ -7,6 +7,14 @@ namespace UniversalFermenter
 {
     public class QualityDays
     {
+        public float awful;
+        public float excellent;
+        public float good;
+        public float legendary;
+        public float masterwork;
+        public float normal;
+        public float poor;
+
         public QualityDays()
         {
         }
@@ -41,13 +49,5 @@ namespace UniversalFermenter
                 legendary = Convert.ToSingle(array[6], invariantCulture);
             }
         }
-
-        public float awful;
-        public float poor;
-        public float normal;
-        public float good;
-        public float excellent;
-        public float masterwork;
-        public float legendary;
     }
 }

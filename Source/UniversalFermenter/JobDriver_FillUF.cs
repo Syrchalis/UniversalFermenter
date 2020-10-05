@@ -27,8 +27,8 @@ namespace UniversalFermenter
             // Verify fermenter and ingredient validity
             this.FailOnDespawnedNullOrForbidden(FermenterInd);
             this.FailOnBurningImmobile(FermenterInd);
-            AddEndCondition(() => comp.SpaceLeftForIngredient > 0 ? JobCondition.Ongoing : JobCondition.Succeeded);
-            yield return Toils_General.DoAtomic(() => job.count = comp.SpaceLeftForIngredient);
+            AddEndCondition(() => comp.SpaceLeftFor(Ingredient.def) > 0 ? JobCondition.Ongoing : JobCondition.Succeeded);
+            yield return Toils_General.DoAtomic(() => job.count = comp.SpaceLeftFor(Ingredient.def));
 
             // Creating the toil before yielding allows for CheckForGetOpportunityDuplicate
             Toil reserveIngredient = Toils_Reserve.Reserve(IngredientInd);

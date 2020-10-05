@@ -10,7 +10,7 @@ namespace UniversalFermenter
             get
             {
                 CompUniversalFermenter comp = this.TryGetComp<CompUniversalFermenter>();
-                return comp != null && comp.CurrentProcess.colorCoded ? comp.CurrentProcess.color : DrawColor;
+                return comp?.SingleProductDef != null && comp.SingleProductDef.colorCoded ? comp.SingleProductDef.color : DrawColor;
             }
         }
     }

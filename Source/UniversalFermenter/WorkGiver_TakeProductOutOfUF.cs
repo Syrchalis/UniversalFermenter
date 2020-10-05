@@ -22,7 +22,10 @@ namespace UniversalFermenter
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
             CompUniversalFermenter comp = t.TryGetComp<CompUniversalFermenter>();
-            if (comp == null || !comp.Finished || t.IsBurning() || t.IsForbidden(pawn))
+            if (comp == null || t.IsBurning() || t.IsForbidden(pawn))
+                return false;
+
+            if (!(comp.AnyFinished || comp.AnyRuined))
                 return false;
 
             return pawn.CanReserveAndReach(t, PathEndMode.Touch, pawn.NormalMaxDanger(), 1, -1, null, forced);

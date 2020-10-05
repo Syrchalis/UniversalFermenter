@@ -21,6 +21,9 @@ namespace UniversalFermenter
         public static Dictionary<UF_Process, Material> processMaterials = new Dictionary<UF_Process, Material>();
         public static Dictionary<QualityCategory, Material> qualityMaterials = new Dictionary<QualityCategory, Material>();
 
+        private static int gooseAngle = Rand.Range(0, 360);
+        private static readonly HashSet<char> Vowels = new HashSet<char> { 'a', 'e', 'i', 'o', 'u' };
+
         static UF_Utility()
         {
             CheckForErrors();
@@ -62,7 +65,6 @@ namespace UniversalFermenter
 
         public static void RecacheAll() //Gets called in constructor and in writeSettings
         {
-            RecacheProcessGizmos();
             RecacheProcessMaterials();
             RecacheQualityGizmos();
         }
@@ -82,38 +84,6 @@ namespace UniversalFermenter
             {
                 tempProcessList[i].uniqueID = i;
                 allUFProcesses.Add(tempProcessList[i]);
-            }
-        }
-
-        public static void RecacheProcessGizmos()
-        {
-            processGizmos.Clear();
-            foreach (ThingDef thingDef in DefDatabase<ThingDef>.AllDefs.Where(x => x.HasComp(typeof(CompUniversalFermenter)))) //we grab every thingDef that has the UF comp
-            {
-                if (thingDef.comps.Find(c => c.compClass == typeof(CompUniversalFermenter)) is CompProperties_UniversalFermenter compUF)
-                {
-                    foreach (UF_Process process in compUF.processes) //we loop again to make a gizmo for each process, now that we have a complete FloatMenuOption list
-                    {
-                        Command_Process command_Process = new Command_Process
-                        {
-                            defaultLabel = process.customLabel != "" ? process.customLabel : process.thingDef?.label,
-                            defaultDesc = "UF_NextDesc".Translate(process.thingDef?.label, IngredientFilterSummary(process.ingredientFilter)),
-                            //activateSound = SoundDefOf.Tick_Tiny,
-                            icon = GetIcon(process.thingDef, UF_Settings.singleItemIcon),
-                            processToTarget = process,
-                            processOptions = compUF.processes
-                        };
-                        command_Process.action = () =>
-                        {
-                            FloatMenu floatMenu = new FloatMenu(command_Process.RightClickFloatMenuOptions.ToList())
-                            {
-                                vanishIfMouseDistant = true,
-                            };
-                            Find.WindowStack.Add(floatMenu);
-                        };
-                        processGizmos.Add(process, command_Process);
-                    }
-                }
             }
         }
 
@@ -153,16 +123,13 @@ namespace UniversalFermenter
                 {
                     FloatMenu floatMenu = new FloatMenu(command_Quality.RightClickFloatMenuOptions.ToList())
                     {
-                        vanishIfMouseDistant = true,
+                        vanishIfMouseDistant = true
                     };
                     Find.WindowStack.Add(floatMenu);
                 };
                 qualityGizmos.Add(quality, command_Quality);
             }
         }
-
-        private static int gooseAngle = Rand.Range(0, 360);
-        private static readonly HashSet<char> Vowels = new HashSet<char> { 'a', 'e', 'i', 'o', 'u' };
 
         public static Command_Action DebugGizmo()
         {
@@ -175,7 +142,7 @@ namespace UniversalFermenter
                 iconDrawScale = 1.25f,
                 action = () =>
                 {
-                    FloatMenu floatMenu = new FloatMenu(DebugOptions()) { vanishIfMouseDistant = true, };
+                    FloatMenu floatMenu = new FloatMenu(DebugOptions()) { vanishIfMouseDistant = true };
                     Find.WindowStack.Add(floatMenu);
                 }
             };
@@ -188,14 +155,14 @@ namespace UniversalFermenter
             IEnumerable<ThingWithComps> things = Find.Selector.SelectedObjects.OfType<ThingWithComps>().Where(t => t.GetComp<CompUniversalFermenter>() != null);
             IEnumerable<CompUniversalFermenter> comps = things.Select(t => t.TryGetComp<CompUniversalFermenter>()).ToList();
 
-            if (comps.Any(c => !c.Empty && !c.Finished))
+            if (comps.Any(c => !c.Empty && !c.AnyFinished))
             {
                 floatMenuOptions.Add(new FloatMenuOption("Finish process", () => FinishProcess(comps)));
                 floatMenuOptions.Add(new FloatMenuOption("Progress one day", () => ProgressOneDay(comps)));
                 floatMenuOptions.Add(new FloatMenuOption("Progress half quadrum", () => ProgressHalfQuadrum(comps)));
             }
 
-            if (comps.Any(c => c.Finished))
+            if (comps.Any(c => c.AnyFinished))
             {
                 floatMenuOptions.Add(new FloatMenuOption("Empty object", () => EmptyObject(comps)));
             }
@@ -214,9 +181,12 @@ namespace UniversalFermenter
         {
             foreach (CompUniversalFermenter comp in comps)
             {
-                comp.ProgressTicks = comp.CurrentProcess.usesQuality
-                    ? Mathf.RoundToInt(comp.DaysToReachTargetQuality * GenDate.TicksPerDay)
-                    : Mathf.RoundToInt(comp.CurrentProcess.processDays * GenDate.TicksPerDay);
+                foreach (var progress in comp.progresses)
+                {
+                    progress.progressTicks = progress.Process.usesQuality
+                        ? Mathf.RoundToInt(progress.DaysToReachTargetQuality * GenDate.TicksPerDay)
+                        : Mathf.RoundToInt(progress.Process.processDays * GenDate.TicksPerDay);
+                }
             }
 
             gooseAngle = Rand.Range(0, 360);
@@ -227,7 +197,10 @@ namespace UniversalFermenter
         {
             foreach (CompUniversalFermenter comp in comps)
             {
-                comp.ProgressTicks += GenDate.TicksPerDay;
+                foreach (var progress in comp.progresses)
+                {
+                    progress.progressTicks += GenDate.TicksPerDay;
+                }
             }
 
             gooseAngle = Rand.Range(0, 360);
@@ -238,7 +211,10 @@ namespace UniversalFermenter
         {
             foreach (CompUniversalFermenter comp in comps)
             {
-                comp.ProgressTicks += GenDate.TicksPerQuadrum / 2;
+                foreach (var progress in comp.progresses)
+                {
+                    progress.progressTicks += GenDate.TicksPerQuadrum / 2;
+                }
             }
 
             gooseAngle = Rand.Range(0, 360);
@@ -249,10 +225,13 @@ namespace UniversalFermenter
         {
             foreach (CompUniversalFermenter comp in comps)
             {
-                if (comp.Finished)
+                foreach (var progress in comp.progresses)
                 {
-                    Thing? product = comp.TakeOutProduct();
-                    GenPlace.TryPlaceThing(product, comp.parent.Position, comp.parent.Map, ThingPlaceMode.Near);
+                    if (progress.Finished)
+                    {
+                        Thing? product = comp.TakeOutProduct(progress);
+                        GenPlace.TryPlaceThing(product, comp.parent.Position, comp.parent.Map, ThingPlaceMode.Near);
+                    }
                 }
             }
 
@@ -262,20 +241,20 @@ namespace UniversalFermenter
 
         internal static void FillObject(IEnumerable<CompUniversalFermenter> comps)
         {
+            /* TODO
+            foreach (CompUniversalFermenter comp in comps)
             {
-                foreach (CompUniversalFermenter comp in comps)
+                if (comp.Empty)
                 {
-                    if (comp.Empty)
-                    {
-                        Thing ingredient = ThingMaker.MakeThing(comp.CurrentProcess.ingredientFilter.AnyAllowedDef);
-                        ingredient.stackCount = comp.SpaceLeftForIngredient;
-                        comp.AddIngredient(ingredient);
-                    }
+                    Thing ingredient = ThingMaker.MakeThing(comp.CurrentProcess.ingredientFilter.AnyAllowedDef);
+                    ingredient.stackCount = comp.SpaceLeft;
+                    comp.AddIngredient(ingredient);
                 }
-
-                gooseAngle = Rand.Range(0, 360);
-                UF_DefOf.UF_Honk.PlayOneShotOnCamera();
             }
+
+            gooseAngle = Rand.Range(0, 360);
+            UF_DefOf.UF_Honk.PlayOneShotOnCamera();
+            */
         }
 
         internal static void LogSpeedFactors()
@@ -285,12 +264,15 @@ namespace UniversalFermenter
                 CompUniversalFermenter comp = thing.TryGetComp<CompUniversalFermenter>();
                 if (comp != null)
                 {
-                    Log.Message(comp.parent + ": " +
-                                "sun: " + comp.CurrentSunFactor.ToStringPercent() +
-                                "| rain: " + comp.CurrentRainFactor.ToStringPercent() +
-                                "| snow: " + comp.CurrentSnowFactor.ToStringPercent() +
-                                "| wind: " + comp.CurrentWindFactor.ToStringPercent() +
-                                "| roofed: " + comp.RoofCoverage.ToStringPercent());
+                    foreach (var progress in comp.progresses)
+                    {
+                        Log.Message(comp.parent + ": " +
+                                    "sun: " + progress.CurrentSunFactor.ToStringPercent() +
+                                    "| rain: " + progress.CurrentRainFactor.ToStringPercent() +
+                                    "| snow: " + progress.CurrentSnowFactor.ToStringPercent() +
+                                    "| wind: " + progress.CurrentWindFactor.ToStringPercent() +
+                                    "| roofed: " + comp.RoofCoverage.ToStringPercent());
+                    }
                 }
             }
 

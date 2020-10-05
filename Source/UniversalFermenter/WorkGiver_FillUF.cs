@@ -10,6 +10,8 @@ namespace UniversalFermenter
     {
         public override PathEndMode PathEndMode => PathEndMode.Touch;
 
+        public override bool Prioritized => true;
+
         public override bool ShouldSkip(Pawn pawn, bool forced = false)
         {
             return !pawn.Map.GetComponent<MapComponent_UF>().thingsWithUFComp.Any();
@@ -20,23 +22,19 @@ namespace UniversalFermenter
             return pawn.Map.GetComponent<MapComponent_UF>().thingsWithUFComp;
         }
 
-        public override bool Prioritized => true;
-
         public override float GetPriority(Pawn pawn, TargetInfo t)
         {
             CompUniversalFermenter comp = t.Thing.TryGetComp<CompUniversalFermenter>();
-            return 1.0f / comp?.SpaceLeftForIngredient ?? 0f;
+            return 1.0f / comp?.SpaceLeft ?? 0f;
         }
 
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
             CompUniversalFermenter comp = t.TryGetComp<CompUniversalFermenter>();
-            if (comp == null || comp.Finished || comp.SpaceLeftForIngredient <= 0)
+            if (comp == null || comp.SpaceLeft == 0)
                 return false;
 
-            float ambientTemperature = comp.parent.AmbientTemperature;
-            if (ambientTemperature < comp.CurrentProcess.temperatureSafe.min + 2f ||
-                ambientTemperature > comp.CurrentProcess.temperatureSafe.max - 2f)
+            if (!comp.TemperatureOk)
             {
                 JobFailReason.Is("BadTemperature".Translate().ToLower());
                 return false;
@@ -66,12 +64,23 @@ namespace UniversalFermenter
 
         private static Thing? FindIngredient(Pawn pawn, Thing fermenter)
         {
-            ThingFilter? filter = fermenter.TryGetComp<CompUniversalFermenter>()?.CurrentProcess.ingredientFilter;
+            CompUniversalFermenter? comp = fermenter.TryGetComp<CompUniversalFermenter>();
 
-            if (filter == null)
+            // TODO cache this
+            ThingFilter filter = new ThingFilter();
+            foreach (ThingDef def in comp.AcceptedThings)
+            {
+                filter.SetAllow(def, true);
+            }
+
+            if (filter.AnyAllowedDef == null)
                 return null;
 
-            bool Validator(Thing x) => !x.IsForbidden(pawn) && pawn.CanReserve(x) && filter.Allows(x);
+            bool Validator(Thing x)
+            {
+                return !x.IsForbidden(pawn) && pawn.CanReserve(x) && filter.Allows(x);
+            }
+
             return GenClosest.ClosestThingReachable(pawn.Position, pawn.Map, filter.BestThingRequest, PathEndMode.ClosestTouch, TraverseParms.For(pawn), 9999f, Validator);
         }
     }

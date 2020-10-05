@@ -12,12 +12,17 @@ namespace UniversalFermenter
     {
         public static UF_Settings settings = null!;
 
+        public static FieldInfo cachedGraphic = AccessTools.Field(typeof(MinifiedThing), "cachedGraphic");
+
         public UF_Core(ModContentPack content) : base(content)
         {
             settings = GetSettings<UF_Settings>();
         }
 
-        public override string SettingsCategory() => "UF_SettingsCategory".Translate();
+        public override string SettingsCategory()
+        {
+            return "UF_SettingsCategory".Translate();
+        }
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
@@ -99,11 +104,10 @@ namespace UniversalFermenter
                     if (inUse)
                     {
                         CompUniversalFermenter compUF = newBarrel.TryGetComp<CompUniversalFermenter>();
-                        compUF.CurrentProcess = compUF.Props.processes.First(p => p.thingDef == ThingDefOf.Beer);
                         Thing wort = ThingMaker.MakeThing(ThingDefOf.Wort);
                         wort.stackCount = fillCount;
                         compUF.AddIngredient(wort);
-                        compUF.ProgressTicks = (int) (360000 * progress);
+                        compUF.progresses.First().progressTicks = (int) (360000 * progress);
                     }
                 }
 
@@ -118,8 +122,6 @@ namespace UniversalFermenter
                 }
             }
         }
-
-        public static FieldInfo cachedGraphic = AccessTools.Field(typeof(MinifiedThing), "cachedGraphic");
     }
 
     public class UF_Settings : ModSettings

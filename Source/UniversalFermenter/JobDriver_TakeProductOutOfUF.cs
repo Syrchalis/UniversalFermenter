@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -26,7 +27,7 @@ namespace UniversalFermenter
         {
             CompUniversalFermenter comp = Fermenter.TryGetComp<CompUniversalFermenter>();
             // Verify fermenter validity
-            this.FailOn(() => !comp.Finished);
+            this.FailOn(() => comp.Empty || comp.progresses.All(p => !p.Finished));
             this.FailOnDestroyedNullOrForbidden(FermenterInd);
 
             // Reserve fermenter
@@ -40,12 +41,13 @@ namespace UniversalFermenter
                 .FailOnDestroyedNullOrForbidden(FermenterInd)
                 .WithProgressBarToilDelay(FermenterInd);
 
-            // Collect product
+            // Collect products
             Toil collect = new Toil
             {
                 initAction = () =>
                 {
-                    Thing? product = comp.TakeOutProduct();
+                    UF_Progress? progress = comp.progresses.First(x => x.Finished);
+                    Thing? product = comp.TakeOutProduct(progress);
                     GenPlace.TryPlaceThing(product, pawn.Position, Map, ThingPlaceMode.Near);
                     StoragePriority storagePriority = StoreUtility.CurrentStoragePriorityOf(product);
 

@@ -401,6 +401,7 @@
   <Operation Class="PatchOperationFindMod">
     <mods>
       <li>[1.1] Ceramics</li>
+      <li>Ceramics</li>
     </mods>
       <match Class="PatchOperationSequence">
       <operations>
