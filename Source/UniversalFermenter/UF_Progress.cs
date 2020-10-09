@@ -215,7 +215,7 @@ namespace UniversalFermenter
                     { } d when d < Process.qualityDays.excellent => QualityCategory.Good,
                     { } d when d < Process.qualityDays.masterwork => QualityCategory.Excellent,
                     { } d when d < Process.qualityDays.legendary => QualityCategory.Legendary,
-                    { } d when d >= Process.qualityDays.legendary => QualityCategory.Normal,
+                    { } d when d >= Process.qualityDays.legendary => QualityCategory.Legendary,
                     _ => QualityCategory.Normal
                 };
             }
@@ -305,7 +305,10 @@ namespace UniversalFermenter
                     CurrentRainFactor.ToStringPercentColored().Named("RAIN"),
                     CurrentSnowFactor.ToStringPercentColored().Named("SNOW"),
                     CurrentSunFactor.ToStringPercentColored().Named("SUN")));
-                progressTip.AppendTagged("UF_SpeedTooltip3".Translate(EstimatedTicksLeft.ToStringTicksToPeriod(canUseDecimals: false).Named("ESTIMATED")));
+
+                if (!Finished)
+                    progressTip.AppendTagged("UF_SpeedTooltip3".Translate(EstimatedTicksLeft.ToStringTicksToPeriod(canUseDecimals: false).Named("ESTIMATED")));
+
                 return progressTip.ToString();
             }
         }

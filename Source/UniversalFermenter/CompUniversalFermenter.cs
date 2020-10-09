@@ -407,9 +407,9 @@ namespace UniversalFermenter
                 else if (progresses[0].Ruined)
                     str.AppendTagged("UF_Ruined".Translate());
                 else if (progresses[0].CurrentSpeedFactor < UF_Progress.SlowAtSpeedFactor)
-                    str.AppendTagged("UF_RunningSlow".Translate(progresses[0].CurrentSpeedFactor.ToStringPercent(), progresses[0].ProgressPercent.ToStringPercent()));
+                    str.AppendTagged("UF_RunningSlow".Translate(progresses[0].CurrentSpeedFactor.ToStringPercent(), progresses[0].ProgressPercentFlooredString.Value));
                 else
-                    str.AppendTagged("UF_RunningInfo".Translate(progresses[0].ProgressPercent.ToStringPercent()));
+                    str.AppendTagged("UF_RunningInfo".Translate(progresses[0].ProgressPercentFlooredString.Value));
             }
 
             str.AppendLine();
@@ -518,6 +518,11 @@ namespace UniversalFermenter
             CachesInvalid(true);
 
             DoTicks(250);
+
+            foreach(UF_Progress progress in progresses)
+            {
+                progress.TickRare();
+            }
         }
 
         public Tuple<string, string> GetIngredientProductLabels(Thing thing)
