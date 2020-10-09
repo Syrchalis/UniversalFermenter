@@ -27,7 +27,7 @@ namespace UniversalFermenter
         {
             CompUniversalFermenter comp = Fermenter.TryGetComp<CompUniversalFermenter>();
             // Verify fermenter validity
-            this.FailOn(() => comp.Empty || comp.progresses.All(p => !p.Finished));
+            this.FailOn(() => comp.Empty || !(comp.AnyFinished || comp.AnyRuined));
             this.FailOnDestroyedNullOrForbidden(FermenterInd);
 
             // Reserve fermenter
@@ -46,8 +46,16 @@ namespace UniversalFermenter
             {
                 initAction = () =>
                 {
-                    UF_Progress? progress = comp.progresses.First(x => x.Finished);
+                    UF_Progress? progress = comp.progresses.First(x => x.Finished || x.Ruined);
                     Thing? product = comp.TakeOutProduct(progress);
+
+                    // Remove a ruined product
+                    if (product == null)
+                    {
+                        EndJobWith(JobCondition.Succeeded);
+                        return;
+                    }
+
                     GenPlace.TryPlaceThing(product, pawn.Position, Map, ThingPlaceMode.Near);
                     StoragePriority storagePriority = StoreUtility.CurrentStoragePriorityOf(product);
 
@@ -55,7 +63,7 @@ namespace UniversalFermenter
                     if (StoreUtility.TryFindBestBetterStoreCellFor(product, pawn, Map, storagePriority, pawn.Faction, out IntVec3 c))
                     {
                         job.SetTarget(ProductToHaulInd, product);
-                        job.count = product?.stackCount ?? 0;
+                        job.count = product.stackCount;
                         job.SetTarget(StorageCellInd, c);
                     }
                     // If there is no spot to store the product, end this job

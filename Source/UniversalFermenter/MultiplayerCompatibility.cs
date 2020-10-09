@@ -21,7 +21,6 @@ namespace UniversalFermenter
                 nameof(UF_Utility.ProgressOneDay),
                 nameof(UF_Utility.ProgressHalfQuadrum),
                 nameof(UF_Utility.EmptyObject),
-                nameof(UF_Utility.FillObject),
                 nameof(UF_Utility.LogSpeedFactors)
             };
             foreach (string methodName in methods)

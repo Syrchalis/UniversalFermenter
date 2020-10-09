@@ -75,16 +75,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Building_ColorCoded.cs" />
+    <Compile Include="Cacheable.cs" />
     <Compile Include="Command_Process.cs" />
     <Compile Include="CompProperties_UniversalFermenter.cs" />
     <Compile Include="CompUniversalFermenter.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="HarmonyPatches.cs" />
+    <Compile Include="ITab_UFIngredientFilter.cs" />
     <Compile Include="ITab_UFProductFilter.cs" />
     <Compile Include="ITab_UFContents.cs" />
     <Compile Include="MapComponent_UF.cs" />
     <Compile Include="QualityDays.cs" />
     <Compile Include="UFException.cs" />
+    <Compile Include="UF_Clipboard.cs" />
     <Compile Include="UF_DefOf.cs" />
     <Compile Include="JobDriver_FillUF.cs" />
     <Compile Include="JobDriver_TakeProductOutOfUF.cs" />

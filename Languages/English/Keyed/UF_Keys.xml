@@ -18,7 +18,7 @@
 	<UF_ReplaceVanillaBarrels>Replace vanilla barrels</UF_ReplaceVanillaBarrels>
 	<UF_ReplaceVanillaBarrelsTooltip>Replaces all vanilla fermenting barrels for the UF ones, intended to be used after adding UF to an existing game, not multiplayer safe</UF_ReplaceVanillaBarrelsTooltip>
 	<UF_DefaultSettings>Reset to default</UF_DefaultSettings>
-	<UF_DefaultSettingsTooltip>Reset settings to default values</UF_DefaultSettingsTooltip>
+	<UF_DefaultSettingsTooltip>Reset ProductFilter to default values</UF_DefaultSettingsTooltip>
 
 	<!-- Universal Fermenter Strings -->
 	<UF_ContainsIngredientsGeneric>Contains {0} / {1} ingredients</UF_ContainsIngredientsGeneric>
@@ -70,6 +70,7 @@
 
 	<UF_OldBarrelInspectString>Old vanilla barrel, install it anywhere to replace it for universal fermenter</UF_OldBarrelInspectString>
 	<UF_TabProductFilter>Product</UF_TabProductFilter>
+	<UF_TabIngredientFilter>Filter</UF_TabIngredientFilter>
 	<UF_TabContents>Contents</UF_TabContents>
 	<UF_FermentingItems>Fermenting Items</UF_FermentingItems>
 	<UF_Product>Product</UF_Product>

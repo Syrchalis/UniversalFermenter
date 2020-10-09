@@ -167,11 +167,6 @@ namespace UniversalFermenter
                 floatMenuOptions.Add(new FloatMenuOption("Empty object", () => EmptyObject(comps)));
             }
 
-            if (comps.Any(c => c.Empty))
-            {
-                floatMenuOptions.Add(new FloatMenuOption("Fill object", () => FillObject(comps)));
-            }
-
             floatMenuOptions.Add(new FloatMenuOption("Log speed factors", LogSpeedFactors));
 
             return floatMenuOptions;
@@ -187,6 +182,7 @@ namespace UniversalFermenter
                         ? Mathf.RoundToInt(progress.DaysToReachTargetQuality * GenDate.TicksPerDay)
                         : Mathf.RoundToInt(progress.Process.processDays * GenDate.TicksPerDay);
                 }
+                comp.CachesInvalid();
             }
 
             gooseAngle = Rand.Range(0, 360);
@@ -201,6 +197,7 @@ namespace UniversalFermenter
                 {
                     progress.progressTicks += GenDate.TicksPerDay;
                 }
+                comp.CachesInvalid();
             }
 
             gooseAngle = Rand.Range(0, 360);
@@ -215,6 +212,7 @@ namespace UniversalFermenter
                 {
                     progress.progressTicks += GenDate.TicksPerQuadrum / 2;
                 }
+                comp.CachesInvalid();
             }
 
             gooseAngle = Rand.Range(0, 360);
@@ -233,28 +231,11 @@ namespace UniversalFermenter
                         GenPlace.TryPlaceThing(product, comp.parent.Position, comp.parent.Map, ThingPlaceMode.Near);
                     }
                 }
+                comp.CachesInvalid();
             }
 
             gooseAngle = Rand.Range(0, 360);
             UF_DefOf.UF_Honk.PlayOneShotOnCamera();
-        }
-
-        internal static void FillObject(IEnumerable<CompUniversalFermenter> comps)
-        {
-            /* TODO
-            foreach (CompUniversalFermenter comp in comps)
-            {
-                if (comp.Empty)
-                {
-                    Thing ingredient = ThingMaker.MakeThing(comp.CurrentProcess.ingredientFilter.AnyAllowedDef);
-                    ingredient.stackCount = comp.SpaceLeft;
-                    comp.AddIngredient(ingredient);
-                }
-            }
-
-            gooseAngle = Rand.Range(0, 360);
-            UF_DefOf.UF_Honk.PlayOneShotOnCamera();
-            */
         }
 
         internal static void LogSpeedFactors()
@@ -271,7 +252,7 @@ namespace UniversalFermenter
                                     "| rain: " + progress.CurrentRainFactor.ToStringPercent() +
                                     "| snow: " + progress.CurrentSnowFactor.ToStringPercent() +
                                     "| wind: " + progress.CurrentWindFactor.ToStringPercent() +
-                                    "| roofed: " + comp.RoofCoverage.ToStringPercent());
+                                    "| roofed: " + comp.RoofCoverage.Value.ToStringPercent());
                     }
                 }
             }

@@ -5,15 +5,15 @@ using Verse;
 
 namespace UniversalFermenter
 {
-    public class ITab_UFProductFilter : ITab
+    public class ITab_UFIngredientFilter : ITab
     {
         private Vector2 scrollPosition;
         private readonly Rect area;
         private readonly Rect configRect;
 
-        public ITab_UFProductFilter()
+        public ITab_UFIngredientFilter()
         {
-            labelKey = "UF_TabProductFilter";
+            labelKey = "UF_TabIngredientFilter";
             size = new Vector2(300, 400);
             area = new Rect(0.0f, 0.0f, size.x, size.y).ContractedBy(10f);
             configRect = new Rect(0.0f, 20, area.width, area.height);
@@ -32,14 +32,7 @@ namespace UniversalFermenter
             fermenter.ParentProductFilter.allowedHitPointsConfigurable = false;
             fermenter.ParentProductFilter.allowedQualitiesConfigurable = false;
 
-            ThingFilterUI.DoThingFilterConfigWindow(
-                configRect,
-                ref scrollPosition,
-                fermenter.ProductFilter,
-                fermenter.ParentProductFilter,
-                8,
-                forceHiddenFilters: DefDatabase<SpecialThingFilterDef>.AllDefsListForReading,
-                forceHideHitPointsConfig: true);
+            ThingFilterUI.DoThingFilterConfigWindow(configRect, ref scrollPosition, fermenter.IngredientFilter, fermenter.ParentIngredientFilter, 8);
 
             GUI.EndGroup();
         }

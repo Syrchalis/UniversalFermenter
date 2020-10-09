@@ -2,6 +2,7 @@
 //   * parent.Map is null when the building (parent) is minified (uninstalled).
 
 #nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,8 +13,12 @@ using Verse;
 
 namespace UniversalFermenter
 {
-    public class CompUniversalFermenter : ThingComp, IThingHolder, IStoreSettingsParent
+    public class CompUniversalFermenter : ThingComp, IThingHolder
     {
+        private readonly Cacheable<string> compInspectStringExtra;
+        private readonly Cacheable<Dictionary<Thing, Tuple<string, string>>> ingredientProductLabels;
+        private readonly CacheableDict<ThingDef, int> spaceLeftFor;
+
         /// <summary>Possible flickable component on the fermenter.</summary>
         public CompFlickable? flickComp;
 
@@ -21,6 +26,8 @@ namespace UniversalFermenter
         public bool graphicChangeQueued;
 
         public ThingOwner<Thing> innerContainer = null!;
+
+        public ThingFilter ParentIngredientFilter { get; } = new ThingFilter();
 
         /// <summary>Possible power trader component on the fermenter.</summary>
         public CompPowerTrader? powerTradeComp;
@@ -32,11 +39,32 @@ namespace UniversalFermenter
         /// <summary>Possible refuelable component on the fermenter.</summary>
         public CompRefuelable? refuelComp;
 
-        /// <summary>Current filter for things allowed to be put in this fermenter.</summary>
-        public StorageSettings settings = new StorageSettings();
-
         /// <summary>Selected target quality for fermentation.</summary>
         public QualityCategory targetQuality = QualityCategory.Normal;
+
+        /// <summary>Current filter for products the fermenter can make.</summary>
+        public ThingFilter ProductFilter = new ThingFilter();
+
+        /// <summary>Parent filter for products (includes all possible products).</summary>
+        public ThingFilter ParentProductFilter = new ThingFilter();
+
+        /// <summary>Current filter for ingredients the fermenter can use.</summary>
+        public ThingFilter IngredientFilter;
+
+        /// <summary>Filter for ingredients which combines IngredientFilter and ParentIngredientFilter.</summary>
+        public Cacheable<ThingFilter> CombinedIngredientFilter;
+
+        public CompUniversalFermenter()
+        {
+            IngredientCount = new Cacheable<int>(() => progresses.Sum(p => p.IngredientCount));
+            SpaceLeft = new Cacheable<int>(() => Mathf.Max(0, MaxCapacity - IngredientCount));
+            spaceLeftFor = new CacheableDict<ThingDef, int>(SpaceLeftForInternal);
+            RoofCoverage = new Cacheable<float>(CalcRoofCoverage);
+            compInspectStringExtra = new Cacheable<string>(GetCompInspectStringExtra);
+            ingredientProductLabels = new Cacheable<Dictionary<Thing, Tuple<string, string>>>(() => innerContainer.ToDictionary(t => t, GetIngredientProductLabel));
+            IngredientFilter = new ThingFilter(IngredientFilterChanged);
+            CombinedIngredientFilter = new Cacheable<ThingFilter>(GetCombinedIngredientFilter);
+        }
 
         /// <summary>Gets the component properties for this component.</summary>
         public CompProperties_UniversalFermenter Props => (CompProperties_UniversalFermenter) props;
@@ -61,10 +89,10 @@ namespace UniversalFermenter
         }
 
         /// <summary>Gets the amount of space left in the fermenter for more ingredients.</summary>
-        public int SpaceLeft => Mathf.Max(0, MaxCapacity - IngredientCount);
+        public Cacheable<int> SpaceLeft { get; }
 
         /// <summary>The total number of ingredients in this fermenter.</summary>
-        public int IngredientCount => progresses.Sum(p => p.IngredientCount);
+        public Cacheable<int> IngredientCount { get; }
 
         public string Label => parent.Label;
 
@@ -80,29 +108,14 @@ namespace UniversalFermenter
             }
         }
 
-        public float RoofCoverage // How much of the building is under a roof
-        {
-            get
-            {
-                if (parent.Map == null) return 0f;
-
-                int allTiles = 0;
-                int roofedTiles = 0;
-                foreach (IntVec3 current in parent.OccupiedRect())
-                {
-                    allTiles++;
-                    if (parent.Map.roofGrid.Roofed(current)) roofedTiles++;
-                }
-
-                return roofedTiles / (float) allTiles;
-            }
-        }
+        /// <summary>How much of the building is under a roof.</summary>
+        public Cacheable<float> RoofCoverage { get; }
 
         public IEnumerable<UF_Process> EnabledProcesses
         {
             get
             {
-                foreach (ThingDef? product in settings.filter.AllowedThingDefs)
+                foreach (ThingDef? product in ProductFilter.AllowedThingDefs)
                     yield return processesByProduct[product];
             }
         }
@@ -118,7 +131,9 @@ namespace UniversalFermenter
         }
 
         public bool Fueled => refuelComp == null || refuelComp.HasFuel;
+
         public bool Powered => powerTradeComp == null || powerTradeComp.PowerOn;
+
         public bool FlickedOn => flickComp == null || flickComp.SwitchIsOn;
 
         public bool TemperatureOk
@@ -140,17 +155,7 @@ namespace UniversalFermenter
 
         public bool AnyRuined => progresses.Any(p => p.Ruined);
 
-        public StorageSettings GetStoreSettings()
-        {
-            return settings;
-        }
-
-        public StorageSettings GetParentStoreSettings()
-        {
-            return Props.FixedStorageSettings;
-        }
-
-        public bool StorageTabVisible => true;
+        public bool AnyIngredientsOnMap => parent.Map.listerThings.ThingsMatching(CombinedIngredientFilter.Value.BestThingRequest).Any();
 
         public ThingOwner GetDirectlyHeldThings()
         {
@@ -162,23 +167,68 @@ namespace UniversalFermenter
             ThingOwnerUtility.AppendThingHoldersFromThings(outChildren, GetDirectlyHeldThings());
         }
 
+        private void ProductFilterChanged()
+        {
+            // Reset parent ingredient filter
+            ParentIngredientFilter.SetDisallowAll();
+            foreach (ThingDef def in AcceptedThings)
+            {
+                ParentIngredientFilter.SetAllow(def, true);
+            }
+        }
+
+        private void IngredientFilterChanged()
+        {
+            CombinedIngredientFilter.Invalidate();
+        }
+
+        private ThingFilter GetCombinedIngredientFilter()
+        {
+            ThingFilter filter = new ThingFilter();
+            filter.CopyAllowancesFrom(IngredientFilter);
+
+            foreach (ThingDef def in filter.AllowedThingDefs.ToList())
+            {
+                if (!ParentIngredientFilter.Allows(def))
+                    filter.SetAllow(def, false);
+            }
+
+            return filter;
+        }
+
         public override void Initialize(CompProperties props)
         {
             base.Initialize(props);
+
+            processesByProduct = Processes.ToDictionary(x => x.thingDef, x => x);
             refuelComp = parent.GetComp<CompRefuelable>();
             powerTradeComp = parent.GetComp<CompPowerTrader>();
             flickComp = parent.GetComp<CompFlickable>();
             innerContainer = new ThingOwner<Thing>(this);
-            settings = new StorageSettings(this);
-            settings.filter.CopyAllowancesFrom(Props.defaultFilter);
-            processesByProduct = Processes.ToDictionary(x => x.thingDef, x => x);
+            ProductFilter = new ThingFilter(ProductFilterChanged);
+            ProductFilter.CopyAllowancesFrom(Props.defaultFilter);
 
             parent.def.inspectorTabsResolved ??= new List<InspectTabBase>();
 
-            if (!parent.def.inspectorTabsResolved.Any(t => t is ITab_Storage))
+            if (!parent.def.inspectorTabsResolved.Any(t => t is ITab_UFContents))
             {
-                parent.def.inspectorTabsResolved.Add(InspectTabManager.GetSharedInstance(typeof(ITab_UFProductFilter)));
+                if (Props.processes.Count > 1)
+                    parent.def.inspectorTabsResolved.Add(InspectTabManager.GetSharedInstance(typeof(ITab_UFProductFilter)));
+                parent.def.inspectorTabsResolved.Add(InspectTabManager.GetSharedInstance(typeof(ITab_UFIngredientFilter)));
                 parent.def.inspectorTabsResolved.Add(InspectTabManager.GetSharedInstance(typeof(ITab_UFContents)));
+            }
+
+            // Defaults for filters
+            foreach(UF_Process process in Props.processes)
+            {
+                ParentProductFilter.SetAllow(process.thingDef, true);
+            }
+
+            ProductFilterChanged();
+
+            foreach (ThingDef def in Props.processes.SelectMany(x => x.ingredientFilter.AllowedThingDefs))
+            {
+                IngredientFilter.SetAllow(def, true);
             }
         }
 
@@ -210,7 +260,7 @@ namespace UniversalFermenter
             if (Processes.Any(process => process.usesQuality))
                 yield return UF_Utility.qualityGizmos[targetQuality];
 
-            foreach (var gizmo in StorageSettingsClipboard.CopyPasteGizmosFor(settings))
+            foreach (var gizmo in UF_Clipboard.CopyPasteGizmosFor(this))
                 yield return gizmo;
         }
 
@@ -294,6 +344,12 @@ namespace UniversalFermenter
         // Inspector string eats max. 5 lines - there is room for one more
         public override string CompInspectStringExtra()
         {
+            return compInspectStringExtra;
+        }
+
+        private string GetCompInspectStringExtra()
+        {
+            // Perf: Only recalculate this inspect string periodically
             if (progresses.Count == 0)
                 return "UF_NoIngredient".TranslateSimple();
 
@@ -306,7 +362,7 @@ namespace UniversalFermenter
                 if (singleDef.processType == ProcessType.Single && progresses.Count == 1 && singleDef.usesQuality && progresses[0].ProgressDays >= singleDef.qualityDays.awful)
                 {
                     UF_Progress progress = progresses[0];
-                    str.AppendTagged("UF_ContainsProductWithQuality".Translate(MaxCapacity - SpaceLeft, MaxCapacity, singleDef.thingDef.Named("PRODUCT"), progress.CurrentQuality.GetLabel().ToLower().Named("QUALITY")));
+                    str.AppendTagged("UF_ContainsProduct".Translate(MaxCapacity - SpaceLeft, MaxCapacity, singleDef.thingDef.Named("PRODUCT"), progress.CurrentQuality.GetLabel().ToLower().Named("QUALITY")));
                 }
                 else
                 {
@@ -370,8 +426,9 @@ namespace UniversalFermenter
                     }
                     else if (!Empty)
                     {
-                        str.AppendFormat(" ({0}{1})",
-                            ambientTemperature < singleDef.temperatureSafe.TrueMin ? "Freezing".TranslateSimple() : "Overheating".TranslateSimple(),
+                        bool overheating = ambientTemperature < singleDef.temperatureSafe.TrueMin; 
+                        str.AppendFormat(" ({0}{1})".Colorize(overheating ? ColoredText.RedReadable : Color.blue),
+                            overheating ? "Freezing".TranslateSimple() : "Overheating".TranslateSimple(),
                             progresses.Count == 1 && progresses[0].Process.processType == ProcessType.Single ? $" {progresses[0].ruinedPercent.ToStringPercent()}" : "");
                     }
                 }
@@ -430,6 +487,22 @@ namespace UniversalFermenter
             return str.ToString().TrimEndNewlines();
         }
 
+        private float CalcRoofCoverage()
+        {
+            if (parent.Map == null) return 0f;
+
+            int allTiles = 0;
+            int roofedTiles = 0;
+            foreach (IntVec3 current in parent.OccupiedRect())
+            {
+                allTiles++;
+                if (parent.Map.roofGrid.Roofed(current))
+                    roofedTiles++;
+            }
+
+            return roofedTiles / (float) allTiles;
+        }
+
         public override void CompTick()
         {
             base.CompTick();
@@ -439,7 +512,15 @@ namespace UniversalFermenter
         public override void CompTickRare()
         {
             base.CompTickRare();
+
+            CachesInvalid(true);
+
             DoTicks(250);
+        }
+
+        public Tuple<string, string> GetIngredientProductLabels(Thing thing)
+        {
+            return ingredientProductLabels.Value.TryGetValue(thing, out Tuple<string, string> labels) ? labels : Tuple.Create("Unknown", "Unknown");
         }
 
         public void DoTicks(int ticks)
@@ -484,12 +565,33 @@ namespace UniversalFermenter
 
                 if (wasEmpty && !Empty)
                     GraphicChange(false);
+
+                CachesInvalid();
             }
             catch (UFException ex)
             {
                 Log.Warning(ex.Message);
                 ingredient.Destroy();
             }
+        }
+
+        public void CachesInvalid(bool rareTick = false)
+        {
+            if (rareTick)
+            {
+                // Check periodically
+                RoofCoverage.Invalidate();
+            }
+            else
+            {
+                // Only update when contents have changed
+                spaceLeftFor.Invalidate();
+                ingredientProductLabels.Invalidate();
+                IngredientCount.Invalidate();
+                SpaceLeft.Invalidate();
+            }
+
+            compInspectStringExtra.Invalidate();
         }
 
         private void TryAddIngredientNewProgress(Thing ingredient, UF_Process process)
@@ -528,7 +630,7 @@ namespace UniversalFermenter
             AcceptIngredientThing(ingredient);
             progresses.Add(new UF_Progress(this)
             {
-                processIndex = Processes.IndexOf(process),
+                ProcessIndex = Processes.IndexOf(process),
                 TargetQuality = targetQuality,
                 storedThings = new List<Thing> { ingredient }
             });
@@ -537,7 +639,7 @@ namespace UniversalFermenter
         private void AddIngredientExistingProcess(Thing ingredient, UF_Progress progress)
         {
             AcceptIngredientThing(ingredient);
-            progress.storedThings.Add(ingredient);
+            progress.AddThing(ingredient);
             progress.progressTicks = Mathf.RoundToInt(GenMath.WeightedAverage(0f, ingredient.stackCount, progress.progressTicks, progress.IngredientCount));
         }
 
@@ -548,37 +650,57 @@ namespace UniversalFermenter
                 throw new UFException($"Tried to add ingredient {ingredient} to innerContainer or {Label} but it did not accept the item.");
         }
 
+        private Tuple<string, string> GetIngredientProductLabel(Thing? ingredient)
+        {
+            // Perf: Only calculate these strings once
+            if (ingredient is null)
+                return Tuple.Create("Unknown", "Unknown");
+
+            UF_Process? process = GetProcess(ingredient.def);
+
+            if (process is null)
+                return Tuple.Create("Unknown", "Unknown");
+
+            return Tuple.Create(
+                ingredient.LabelCap,
+                GenLabel.ThingLabel(process.thingDef, null, Mathf.RoundToInt(ingredient.stackCount * process.efficiency)).CapitalizeFirst());
+        }
+
         public Thing? TakeOutProduct(UF_Progress progress)
         {
             try
             {
-                if (!progresses.Contains(progress) || progress.processIndex > Processes.Count - 1)
+                if (!progresses.Contains(progress) || progress.ProcessIndex > Processes.Count - 1)
                     throw new UFException("Cannot take product from this fermenter - progress is invalid.");
 
                 UF_Process process = progress.Process;
 
-                if (!progress.Finished && !process.usesQuality)
+                if (!progress.Finished && !process.usesQuality && !progress.Ruined)
                     throw new UFException($"Tried to get product {process} from {Label}, but it is not done fermenting yet ({progress.ProgressPercent.ToStringPercent()}).");
 
-                if (process.usesQuality && progress.CurrentQuality < progress.TargetQuality)
+                if (process.usesQuality && !progress.Ruined && progress.CurrentQuality < progress.TargetQuality)
                     throw new UFException($"Tried to get product {process} from {Label}, but it has not reached the target quality yet (is {progress.CurrentQuality}, wants {progress.TargetQuality}");
 
-                Thing thing = ThingMaker.MakeThing(process.thingDef);
-
-                CompIngredients compIngredients = thing.TryGetComp<CompIngredients>();
-                if (compIngredients != null && !progress.Ingredients.Any())
-                    compIngredients.ingredients.AddRange(progress.Ingredients);
-
-                if (process.usesQuality)
+                Thing? thing = null;
+                if (!progress.Ruined)
                 {
-                    CompQuality compQuality = thing.TryGetComp<CompQuality>();
-                    compQuality?.SetQuality(progress.CurrentQuality, ArtGenerationContext.Colony);
+                    thing = ThingMaker.MakeThing(process.thingDef);
+
+                    CompIngredients compIngredients = thing.TryGetComp<CompIngredients>();
+                    if (compIngredients != null && !progress.Ingredients.Any())
+                        compIngredients.ingredients.AddRange(progress.Ingredients);
+
+                    if (process.usesQuality)
+                    {
+                        CompQuality compQuality = thing.TryGetComp<CompQuality>();
+                        compQuality?.SetQuality(progress.CurrentQuality, ArtGenerationContext.Colony);
+                    }
+
+                    thing.stackCount = Mathf.RoundToInt(progress.IngredientCount * process.efficiency);
+
+                    if (thing.stackCount == 0)
+                        throw new UFException($"Tried to get product {process} from {Label}, but stack count ended up as 0.");
                 }
-
-                thing.stackCount = Mathf.RoundToInt(progress.IngredientCount * process.efficiency);
-
-                if (thing.stackCount == 0)
-                    throw new UFException($"Tried to get product {process} from {Label}, but stack count ended up as 0.");
 
                 foreach (var ingredient in progress.storedThings)
                 {
@@ -591,6 +713,8 @@ namespace UniversalFermenter
                 if (Empty)
                     GraphicChange(true);
 
+                CachesInvalid();
+
                 return thing;
             }
             catch (UFException ex)
@@ -601,6 +725,11 @@ namespace UniversalFermenter
         }
 
         public int SpaceLeftFor(ThingDef def)
+        {
+            return spaceLeftFor.Get(def);
+        }
+
+        private int SpaceLeftForInternal(ThingDef def)
         {
             if (SpaceLeft == 0 || !EnabledProcesses.Any())
                 return 0;
@@ -633,6 +762,7 @@ namespace UniversalFermenter
             innerContainer.ClearAndDestroyContents();
 
             GraphicChange(true);
+            CachesInvalid();
         }
 
         public void GraphicChange(bool toEmpty)
@@ -672,9 +802,12 @@ namespace UniversalFermenter
 
                 Scribe_Deep.Look(ref innerContainer, "UF_innerContainer", this);
                 Scribe_Collections.Look(ref progresses, "UF_progresses", LookMode.Deep, this);
-                Scribe_Deep.Look(ref settings, "UF_settings");
+                Scribe_Deep.Look(ref ProductFilter, "UF_productFilter");
+                Scribe_Deep.Look(ref IngredientFilter, "UF_ingredientFilter");
 
                 BackwardsCompatibilityUpdate();
+
+                ProductFilterChanged();
             }
             catch (UFException ex)
             {
@@ -701,8 +834,14 @@ namespace UniversalFermenter
             {
                 progresses = new List<UF_Progress>();
                 innerContainer = new ThingOwner<Thing>(this);
-                settings = new StorageSettings(this);
-                settings.filter.CopyAllowancesFrom(Props.defaultFilter);
+                ProductFilter = new ThingFilter(ProductFilterChanged);
+                ProductFilter.CopyAllowancesFrom(Props.defaultFilter);
+
+                IngredientFilter = new ThingFilter(IngredientFilterChanged);
+                foreach (ThingDef def in Props.processes.SelectMany(x => x.ingredientFilter.AllowedThingDefs))
+                {
+                    IngredientFilter.SetAllow(def, true);
+                }
             }
 
             if (progresses.Count > 0 || ingredientCount == 0)
@@ -725,7 +864,7 @@ namespace UniversalFermenter
             {
                 ruinedPercent = ruinedPercent,
                 progressTicks = progressTicks,
-                processIndex = currentProcessIndex,
+                ProcessIndex = currentProcessIndex,
                 TargetQuality = targetQuality
             });
         }

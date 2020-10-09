@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -12,10 +13,12 @@ namespace UniversalFermenter
         /// <summary>If the speed is below this percentage, then the process is considered to be running slowly.</summary>
         public static readonly float SlowAtSpeedFactor = 0.75f;
 
+        private readonly Cacheable<float> currentSpeedFactor;
+
         private readonly CompUniversalFermenter fermenter;
 
         /// <summary>Index of the process that this progress is for.</summary>
-        public int processIndex;
+        private int processIndex;
 
         /// <summary>Material for the progress bar being filled.</summary>
         [Unsaved]
@@ -36,9 +39,12 @@ namespace UniversalFermenter
         public UF_Progress(CompUniversalFermenter parent)
         {
             fermenter = parent;
+            ProgressPercentFlooredString = new Cacheable<string>(() => $"{Mathf.Floor(ProgressPercent * 100):0}%");
+            currentSpeedFactor = new Cacheable<float>(CalcCurrentSpeedFactor);
+            IngredientCount = new Cacheable<int>(() => storedThings.Sum(x => x.stackCount));
         }
 
-        public UF_Process Process => fermenter.Props.processes[processIndex];
+        public UF_Process Process { get; private set; } = null!;
 
         public Map? Map => fermenter.parent.Map;
 
@@ -49,9 +55,9 @@ namespace UniversalFermenter
         public bool Ruined => ruinedPercent >= 1f;
 
         /// <summary>The total ingredient count for this progress.</summary>
-        public int IngredientCount => storedThings.Sum(x => x.stackCount);
+        public Cacheable<int> IngredientCount { get; }
 
-        public float CurrentSpeedFactor => Mathf.Max(CurrentTemperatureFactor * CurrentSunFactor * CurrentRainFactor * CurrentSnowFactor * CurrentWindFactor, 0f);
+        public float CurrentSpeedFactor => currentSpeedFactor;
 
         /// <summary>Gets or sets the number of progress ticks that have elapsed for the fermenter.</summary>
         public long ProgressTicks
@@ -175,6 +181,9 @@ namespace UniversalFermenter
         /// <summary>Gets the percentage the current process has finished to completion.</summary>
         public float ProgressPercent => Mathf.Clamp01(ProgressDays / (Process.usesQuality ? DaysToReachTargetQuality : Process.processDays));
 
+        /// <summary>Progress percentage without decimal, e.g. 23%</summary>
+        public Cacheable<string> ProgressPercentFlooredString { get; }
+
         /// <summary>Gets the number of ticks estimated to be remaining for the current fermentation process to finish, based on current speed.</summary>
         public int EstimatedTicksLeft =>
             CurrentSpeedFactor <= 0
@@ -188,7 +197,7 @@ namespace UniversalFermenter
         public float EstimatedHoursLeft => EstimatedTicksLeft / 2500f;
 
         /// <summary>Gets the number of days estimated to be remaining for the current fermentation process to finish, based on the current speed.</summary>
-        public float EstimatedDaysLeft => EstimatedTicksLeft / 60000f;
+        public float EstimatedDaysLeft => (float) EstimatedTicksLeft / GenDate.TicksPerDay;
 
         /// <summary>Gets the current quality of fermentation.</summary>
         public QualityCategory CurrentQuality
@@ -284,6 +293,63 @@ namespace UniversalFermenter
         /// <summary>If this process is currently running and will complete.</summary>
         public bool Running => !Ruined && !Finished && CurrentSpeedFactor > 0;
 
+        public string ProgressTooltip
+        {
+            get
+            {
+                StringBuilder progressTip = new StringBuilder();
+                progressTip.AppendTagged("UF_SpeedTooltip1".Translate(ProgressPercent.ToStringPercent().Named("COMPLETEPERCENT"), CurrentSpeedFactor.ToStringPercentColored().Named("SPEED")));
+                progressTip.AppendTagged("UF_SpeedTooltip2".Translate(
+                    CurrentTemperatureFactor.ToStringPercentColored().Named("TEMPERATURE"),
+                    CurrentWindFactor.ToStringPercentColored().Named("WIND"),
+                    CurrentRainFactor.ToStringPercentColored().Named("RAIN"),
+                    CurrentSnowFactor.ToStringPercentColored().Named("SNOW"),
+                    CurrentSunFactor.ToStringPercentColored().Named("SUN")));
+                progressTip.AppendTagged("UF_SpeedTooltip3".Translate(EstimatedTicksLeft.ToStringTicksToPeriod(canUseDecimals: false).Named("ESTIMATED")));
+                return progressTip.ToString();
+            }
+        }
+
+        public string QualityTooltip
+        {
+            get
+            {
+                if (!Process.usesQuality)
+                    return "UF_QualityTooltipNA".Translate(Process.thingDef.Named("PRODUCT")).CapitalizeFirst();
+
+                StringBuilder qualityTip = new StringBuilder();
+
+                qualityTip.AppendTagged("UF_QualityTooltip1".Translate(
+                    ProgressDays < Process.qualityDays.awful
+                        ? "UF_None".TranslateSimple().Named("CURRENT")
+                        : CurrentQuality.GetLabel().Named("CURRENT"),
+                    TargetQuality.GetLabel().Named("TARGET")));
+
+                qualityTip.AppendTagged("UF_QualityTooltip2".Translate(
+                    Mathf.RoundToInt(Process.qualityDays.awful * GenDate.TicksPerDay).ToStringTicksToPeriod(canUseDecimals: false).Named("AWFUL"),
+                    Mathf.RoundToInt(Process.qualityDays.poor * GenDate.TicksPerDay).ToStringTicksToPeriod(canUseDecimals: false).Named("POOR"),
+                    Mathf.RoundToInt(Process.qualityDays.normal * GenDate.TicksPerDay).ToStringTicksToPeriod(canUseDecimals: false).Named("NORMAL"),
+                    Mathf.RoundToInt(Process.qualityDays.good * GenDate.TicksPerDay).ToStringTicksToPeriod(canUseDecimals: false).Named("GOOD"),
+                    Mathf.RoundToInt(Process.qualityDays.excellent * GenDate.TicksPerDay).ToStringTicksToPeriod(canUseDecimals: false).Named("EXCELLENT"),
+                    Mathf.RoundToInt(Process.qualityDays.masterwork * GenDate.TicksPerDay).ToStringTicksToPeriod(canUseDecimals: false).Named("MASTERWORK"),
+                    Mathf.RoundToInt(Process.qualityDays.legendary * GenDate.TicksPerDay).ToStringTicksToPeriod(canUseDecimals: false).Named("LEGENDARY")
+                ));
+
+                return qualityTip.ToString();
+            }
+        }
+
+        /// <summary>Index of the process that this progress is for.</summary>
+        public int ProcessIndex
+        {
+            get => processIndex;
+            set
+            {
+                processIndex = value;
+                Process = fermenter.Props.processes[ProcessIndex];
+            }
+        }
+
         public void ExposeData()
         {
             Scribe_Values.Look(ref ruinedPercent, "ruinedPercent");
@@ -291,38 +357,98 @@ namespace UniversalFermenter
             Scribe_Values.Look(ref processIndex, "processIndex");
             Scribe_Collections.Look(ref storedThings, "storedThings", LookMode.Reference);
             Scribe_Values.Look(ref targetQuality, "targetQuality");
+
+            IngredientCount.Invalidate();
+            Process = fermenter.Props.processes[ProcessIndex];
         }
 
         public void DoTicks(int ticks)
         {
             ProgressTicks += Mathf.RoundToInt(ticks * CurrentSpeedFactor);
 
-            if (Ruined)
+            if (Ruined || !Process.usesTemperature)
                 return;
 
-            if (Process.usesTemperature)
-            {
-                // 2500 ticks per hour, 100 percent = divide by 250000
-                float ambientTemperature = fermenter.parent.AmbientTemperature;
-                if (ambientTemperature > Process.temperatureSafe.max)
-                    ruinedPercent += (ambientTemperature - Process.temperatureSafe.max) * (Process.ruinedPerDegreePerHour / 250000f) * ticks;
-                else if (ambientTemperature < Process.temperatureSafe.min) ruinedPercent -= (ambientTemperature - Process.temperatureSafe.min) * (Process.ruinedPerDegreePerHour / 250000f) * ticks;
+            // 2500 ticks per hour, 100 percent = divide by 250000
+            float ambientTemperature = fermenter.parent.AmbientTemperature;
+            if (ambientTemperature > Process.temperatureSafe.max) 
+                ruinedPercent += (ambientTemperature - Process.temperatureSafe.max) * (Process.ruinedPerDegreePerHour / GenDate.TicksPerHour / 100f) * ticks;
+            else if (ambientTemperature < Process.temperatureSafe.min) ruinedPercent -= (ambientTemperature - Process.temperatureSafe.min) * (Process.ruinedPerDegreePerHour / GenDate.TicksPerHour / 100f) * ticks;
 
-                if (ruinedPercent >= 1f)
-                {
-                    ruinedPercent = 1f;
-                    fermenter.parent.BroadcastCompSignal("RuinedByTemperature");
-                }
-                else if (ruinedPercent < 0f)
-                {
-                    ruinedPercent = 0f;
-                }
+            if (ruinedPercent >= 1f)
+            {
+                ruinedPercent = 1f;
+                fermenter.parent.BroadcastCompSignal("RuinedByTemperature");
             }
+            else if (ruinedPercent < 0f)
+            {
+                ruinedPercent = 0f;
+            }
+        }
+
+        public void TickRare()
+        {
+            // Performance - only calculate these every so often
+            currentSpeedFactor.Invalidate();
+            ProgressPercentFlooredString.Invalidate();
+        }
+
+        private float CalcCurrentSpeedFactor()
+        {
+            return Mathf.Max(CurrentTemperatureFactor * CurrentSunFactor * CurrentRainFactor * CurrentSnowFactor * CurrentWindFactor, 0f);
         }
 
         public bool Accepts(ThingDef def)
         {
             return Process.processType == ProcessType.Single && Process.ingredientFilter.Allows(def) && IngredientCount < Process.maxCapacity;
+        }
+
+        public string ProcessTooltip(string ingredientLabel, string? productLabel)
+        {
+            StringBuilder creatingTip = new StringBuilder();
+
+            string qualityStr = Process.usesQuality ? $" ({TargetQuality.GetLabel().CapitalizeFirst()})" : "";
+
+            creatingTip.AppendTagged("UF_CreatingTooltip1".Translate(productLabel.Named("PRODUCT"), ingredientLabel.Named("INGREDIENT"), qualityStr.Named("QUALITY")));
+            creatingTip.AppendTagged(Process.usesQuality
+                ? "UF_CreatingTooltip2_Quality".Translate(Mathf.RoundToInt(Process.qualityDays.awful * GenDate.TicksPerDay).ToStringTicksToPeriod().Named("TOAWFUL"))
+                : "UF_CreatingTooltip2_NoQuality".Translate(Mathf.RoundToInt(Process.processDays * GenDate.TicksPerDay).ToStringTicksToPeriod().Named("TIME")));
+
+            if (Process.usesTemperature)
+            {
+                creatingTip.AppendTagged("UF_CreatingTooltip3".Translate(
+                    Process.temperatureIdeal.min.ToStringTemperature().Named("MIN"),
+                    Process.temperatureIdeal.max.ToStringTemperature().Named("MAX")));
+                creatingTip.AppendTagged("UF_CreatingTooltip4".Translate(
+                    Process.temperatureSafe.min.ToStringTemperature().Named("MIN"),
+                    Process.temperatureSafe.max.ToStringTemperature().Named("MAX"),
+                    (Process.ruinedPerDegreePerHour / 100f).ToStringPercent().Named("PERHOUR")
+                ));
+            }
+
+            if (ruinedPercent > 0.05f)
+            {
+                creatingTip.AppendTagged("UF_CreatingTooltip5".Translate(ruinedPercent.ToStringPercent().Colorize(ColoredText.RedReadable)));
+            }
+
+            if (!Process.temperatureSafe.Includes(fermenter.parent.AmbientTemperature) && !Ruined)
+            {
+                creatingTip.Append("UF_CreatingTooltip6".Translate(fermenter.parent.AmbientTemperature.ToStringTemperature()).Resolve().Colorize(ColoredText.RedReadable));
+            }
+
+            return creatingTip.ToString();
+        }
+
+        public void AddThing(Thing thing)
+        {
+            storedThings.Add(thing);
+            IngredientCount.Invalidate();
+        }
+
+        public void RemoveThing(Thing thing)
+        {
+            storedThings.Remove(thing);
+            IngredientCount.Invalidate();
         }
     }
 }

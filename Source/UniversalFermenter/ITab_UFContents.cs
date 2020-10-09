@@ -1,6 +1,6 @@
 ﻿#nullable enable
+using System;
 using System.Collections.Generic;
-using System.Text;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -66,7 +66,7 @@ namespace UniversalFermenter
                 if (t != null)
                 {
                     flag = true;
-                    DoThingRow(t.def, t.stackCount, t, inRect.width, ref curY, fermenter);
+                    DoThingRow(t.def, t, inRect.width, ref curY, fermenter);
                 }
             }
 
@@ -78,7 +78,7 @@ namespace UniversalFermenter
             GUI.EndGroup();
         }
 
-        protected void DoThingRow(ThingDef thingDef, int count, Thing thing, float width, ref float y, CompUniversalFermenter fermenter)
+        protected void DoThingRow(ThingDef thingDef, Thing thing, float width, ref float y, CompUniversalFermenter fermenter)
         {
             UF_Progress? progress = fermenter.GetProgress(thing);
             if (progress == null)
@@ -112,43 +112,17 @@ namespace UniversalFermenter
             // Progress %
             GUI.color = ITab_Pawn_Gear.ThingLabelColor;
             Text.Anchor = TextAnchor.MiddleRight;
-            Widgets.Label(new Rect(percentAndSpeed.x, y, percentAndSpeed.xMax - percentAndSpeed.x - PaddedIcon, H), Mathf.Floor(progress.ProgressPercent * 100).ToString("0") + "%");
+            Widgets.Label(new Rect(percentAndSpeed.x, y, percentAndSpeed.xMax - percentAndSpeed.x - PaddedIcon, H), progress.ProgressPercentFlooredString);
 
             // Hover over progress %
-            StringBuilder progressTip = new StringBuilder();
-            progressTip.AppendTagged("UF_SpeedTooltip1".Translate(progress.ProgressPercent.ToStringPercent().Named("COMPLETEPERCENT"), progress.CurrentSpeedFactor.ToStringPercentColored().Named("SPEED")));
-            progressTip.AppendTagged("UF_SpeedTooltip2".Translate(
-                progress.CurrentTemperatureFactor.ToStringPercentColored().Named("TEMPERATURE"),
-                progress.CurrentWindFactor.ToStringPercentColored().Named("WIND"),
-                progress.CurrentRainFactor.ToStringPercentColored().Named("RAIN"),
-                progress.CurrentSnowFactor.ToStringPercentColored().Named("SNOW"),
-                progress.CurrentSunFactor.ToStringPercentColored().Named("SUN")));
-            progressTip.AppendTagged("UF_SpeedTooltip3".Translate(progress.EstimatedTicksLeft.ToStringTicksToPeriod(canUseDecimals: false).Named("ESTIMATED")));
-            TooltipHandler.TipRegion(percentAndSpeed, () => progressTip.ToString(), 23492376);
+            TooltipHandler.TipRegion(percentAndSpeed, () => progress.ProgressTooltip, 23492376);
 
             // Quality label or dropdown to change the quality
-            StringBuilder qualityTip = new StringBuilder();
             if (progress.Process.usesQuality)
             {
                 Widgets.Dropdown(qualityArea, progress, p => p?.TargetQuality ?? QualityCategory.Normal, GetProgressQualityDropdowns,
                     progress.TargetQuality.GetLabel().CapitalizeFirst(),
                     (Texture2D) UF_Utility.qualityMaterials[progress.TargetQuality].mainTexture);
-
-                qualityTip.AppendTagged("UF_QualityTooltip1".Translate(
-                    progress.ProgressDays < progress.Process.qualityDays.awful
-                        ? "UF_None".TranslateSimple().Named("CURRENT")
-                        : progress.CurrentQuality.GetLabel().Named("CURRENT"),
-                    progress.TargetQuality.GetLabel().Named("TARGET")));
-
-                qualityTip.AppendTagged("UF_QualityTooltip2".Translate(
-                    Mathf.RoundToInt(progress.Process.qualityDays.awful * 60000).ToStringTicksToPeriod(canUseDecimals: false).Named("AWFUL"),
-                    Mathf.RoundToInt(progress.Process.qualityDays.poor * 60000).ToStringTicksToPeriod(canUseDecimals: false).Named("POOR"),
-                    Mathf.RoundToInt(progress.Process.qualityDays.normal * 60000).ToStringTicksToPeriod(canUseDecimals: false).Named("NORMAL"),
-                    Mathf.RoundToInt(progress.Process.qualityDays.good * 60000).ToStringTicksToPeriod(canUseDecimals: false).Named("GOOD"),
-                    Mathf.RoundToInt(progress.Process.qualityDays.excellent * 60000).ToStringTicksToPeriod(canUseDecimals: false).Named("EXCELLENT"),
-                    Mathf.RoundToInt(progress.Process.qualityDays.masterwork * 60000).ToStringTicksToPeriod(canUseDecimals: false).Named("MASTERWORK"),
-                    Mathf.RoundToInt(progress.Process.qualityDays.legendary * 60000).ToStringTicksToPeriod(canUseDecimals: false).Named("LEGENDARY")
-                ));
             }
             else
             {
@@ -161,11 +135,9 @@ namespace UniversalFermenter
                 GUI.color = ITab_Pawn_Gear.ThingLabelColor;
                 Text.Anchor = TextAnchor.MiddleCenter;
                 Widgets.Label(qualityArea, "UF_NA".Translate());
-
-                qualityTip.AppendTagged("UF_QualityTooltipNA".Translate(progress.Process.thingDef.Named("PRODUCT")).CapitalizeFirst());
             }
 
-            TooltipHandler.TipRegion(qualityArea, () => qualityTip.ToString(), "UF_QualityTooltip1".GetHashCode());
+            TooltipHandler.TipRegion(qualityArea, () => progress.QualityTooltip, "UF_QualityTooltip1".GetHashCode());
 
             GUI.color = Color.white;
 
@@ -201,50 +173,17 @@ namespace UniversalFermenter
             Text.Anchor = TextAnchor.MiddleLeft;
             GUI.color = GenUI.LerpColor(WhiteToYellowToRed, 1.0f - progress.ruinedPercent);
 
-            string ingredientLabel = count == thing.stackCount ? thing.LabelCap : GenLabel.ThingLabel(thingDef, null, count).CapitalizeFirst();
-            string? productLabel = GenLabel.ThingLabel(progress.Process.thingDef, null, Mathf.RoundToInt(count * progress.Process.efficiency)).CapitalizeFirst();
+            var (ingredientLabel, productLabel) = fermenter.GetIngredientProductLabels(thing);
 
             Text.WordWrap = false;
             Widgets.Label(new Rect(ingredientArea.x + PaddedIcon, y, 200 - PaddedIcon, H), ingredientLabel.Truncate(ingredientArea.width));
-            Widgets.Label(new Rect(productArea.x + PaddedIcon, y, 200 - PaddedIcon, H), productLabel?.Truncate(productArea.width));
+            Widgets.Label(new Rect(productArea.x + PaddedIcon, y, 200 - PaddedIcon, H), productLabel.Truncate(productArea.width));
 
             Text.WordWrap = true;
             Text.Anchor = TextAnchor.UpperLeft;
             GUI.color = Color.white;
-
-            string qualityStr = progress.Process.usesQuality ? $" ({progress.TargetQuality.GetLabel().CapitalizeFirst()})" : "";
-
-            StringBuilder creatingTip = new StringBuilder();
-
-            creatingTip.AppendTagged("UF_CreatingTooltip1".Translate(productLabel.Named("PRODUCT"), ingredientLabel.Named("INGREDIENT"), qualityStr.Named("QUALITY")));
-            creatingTip.AppendTagged(progress.Process.usesQuality
-                ? "UF_CreatingTooltip2_Quality".Translate(Mathf.RoundToInt(progress.Process.qualityDays.awful * 60000).ToStringTicksToPeriod().Named("TOAWFUL"))
-                : "UF_CreatingTooltip2_NoQuality".Translate(Mathf.RoundToInt(progress.Process.processDays * 60000).ToStringTicksToPeriod().Named("TIME")));
-
-            if (progress.Process.usesTemperature)
-            {
-                creatingTip.AppendTagged("UF_CreatingTooltip3".Translate(
-                    progress.Process.temperatureIdeal.min.ToStringTemperature().Named("MIN"),
-                    progress.Process.temperatureIdeal.max.ToStringTemperature().Named("MAX")));
-                creatingTip.AppendTagged("UF_CreatingTooltip4".Translate(
-                    progress.Process.temperatureSafe.min.ToStringTemperature().Named("MIN"),
-                    progress.Process.temperatureSafe.max.ToStringTemperature().Named("MAX"),
-                    (progress.Process.ruinedPerDegreePerHour / 100f).ToStringPercent().Named("PERHOUR")
-                ));
-            }
-
-            if (progress.ruinedPercent > 0.05f)
-            {
-                creatingTip.AppendTagged("UF_CreatingTooltip5".Translate(progress.ruinedPercent.ToStringPercent().Colorize(ColoredText.RedReadable)));
-            }
-
-            if (!progress.Process.temperatureSafe.Includes(fermenter.parent.AmbientTemperature))
-            {
-                creatingTip.Append("UF_CreatingTooltip6".Translate(fermenter.parent.AmbientTemperature.ToStringTemperature()).Resolve().Colorize(ColoredText.RedReadable));
-            }
-
-            TooltipHandler.TipRegion(new Rect(productArea.x, y, productArea.width - PaddedIcon, H), () => creatingTip.ToString(), "UF_CreatingTooltip1".GetHashCode());
-            TooltipHandler.TipRegion(new Rect(ingredientArea.x, y, productArea.width - PaddedIcon, H), () => creatingTip.ToString(), "UF_CreatingTooltip2".GetHashCode());
+            TooltipHandler.TipRegion(new Rect(productArea.x, y, productArea.width - PaddedIcon, H), () => progress.ProcessTooltip(ingredientLabel, productLabel), "UF_CreatingTooltip1".GetHashCode());
+            TooltipHandler.TipRegion(new Rect(ingredientArea.x, y, productArea.width - PaddedIcon, H), () => progress.ProcessTooltip(ingredientLabel, productLabel), "UF_CreatingTooltip2".GetHashCode());
 
             y += H;
         }
