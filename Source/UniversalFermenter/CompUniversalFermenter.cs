@@ -54,6 +54,8 @@ namespace UniversalFermenter
         /// <summary>Filter for ingredients which combines IngredientFilter and ParentIngredientFilter.</summary>
         public Cacheable<ThingFilter> CombinedIngredientFilter;
 
+        private BackwardsCompatibilityData? backwardsCompatibilityData;
+
         public CompUniversalFermenter()
         {
             IngredientCount = new Cacheable<int>(() => progresses.Sum(p => p.IngredientCount));
@@ -525,6 +527,9 @@ namespace UniversalFermenter
 
         public void DoTicks(int ticks)
         {
+            if (backwardsCompatibilityData is not null)
+                ApplyBackwardsCompatibility();
+
             if (!Fueled || !Powered || !FlickedOn)
                 return;
 
@@ -643,11 +648,16 @@ namespace UniversalFermenter
             progress.progressTicks = Mathf.RoundToInt(GenMath.WeightedAverage(0f, ingredient.stackCount, progress.progressTicks, progress.IngredientCount));
         }
 
-        private void AcceptIngredientThing(Thing ingredient)
+        private void AcceptIngredientThing(Thing? ingredient)
         {
-            bool added = ingredient.holdingOwner.TryTransferToContainer(ingredient, innerContainer, false);
+            if (ingredient == null)
+                throw new UFException($"Tried to add null ingredient to innerContainer of {Label}.");
+
+            bool added = ingredient.holdingOwner?.TryTransferToContainer(ingredient, innerContainer, false)
+                         ?? innerContainer.TryAdd(ingredient, false);
+
             if (!added)
-                throw new UFException($"Tried to add ingredient {ingredient} to innerContainer or {Label} but it did not accept the item.");
+                throw new UFException($"Tried to add ingredient {ingredient} to innerContainer of {Label} but it did not accept the item.");
         }
 
         private Tuple<string, string> GetIngredientProductLabel(Thing? ingredient)
@@ -815,60 +825,87 @@ namespace UniversalFermenter
             }
         }
 
-        private void BackwardsCompatibilityUpdate()
+        class BackwardsCompatibilityData
         {
-            float ruinedPercent = 0;
-            int ingredientCount = 0;
-            int progressTicks = 0;
-            int currentProcessIndex = 0;
-            int queuedProcessIndex = 0;
-
-            Scribe_Values.Look(ref ruinedPercent, "ruinedPercent");
-            Scribe_Values.Look(ref ingredientCount, "UF_UniversalFermenter_IngredientCount");
-            Scribe_Values.Look(ref progressTicks, "UF_progressTicks");
-            Scribe_Values.Look(ref currentProcessIndex, "UF_currentResourceInd");
-            Scribe_Values.Look(ref queuedProcessIndex, "UF_queuedProcessIndex");
-
-            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-            if (progresses == null)
-            {
-                progresses = new List<UF_Progress>();
-                innerContainer = new ThingOwner<Thing>(this);
-                ProductFilter = new ThingFilter(ProductFilterChanged);
-                ProductFilter.CopyAllowancesFrom(Props.defaultFilter);
-
-                IngredientFilter = new ThingFilter(IngredientFilterChanged);
-                foreach (ThingDef def in Props.processes.SelectMany(x => x.ingredientFilter.AllowedThingDefs))
-                {
-                    IngredientFilter.SetAllow(def, true);
-                }
-            }
-
-            if (progresses.Count > 0 || ingredientCount == 0)
-                return;
-
-            UF_Process? process = Processes[currentProcessIndex];
-            if (process == null)
-                throw new UFException($"Tried to upgrade fermenter {Label} but the current process index was invalid.");
-
-            Thing? ingredients = ThingMaker.MakeThing(process.ingredientFilter.AllowedThingDefs.FirstOrDefault());
-
-            if (ingredients == null)
-                throw new UFException($"Tried to upgrade fermenter {Label} creating {process}, but could not find any ingredients.");
-
-            ingredients.stackCount = ingredientCount;
-
-            AcceptIngredientThing(ingredients);
-
-            progresses.Add(new UF_Progress(this)
-            {
-                ruinedPercent = ruinedPercent,
-                progressTicks = progressTicks,
-                ProcessIndex = currentProcessIndex,
-                TargetQuality = targetQuality
-            });
+            public float ruinedPercent;
+            public int ingredientCount;
+            public int progressTicks;
+            public int currentProcessIndex;
+            public int queuedProcessIndex;
         }
 
+        private void BackwardsCompatibilityUpdate()
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+            if (progresses != null)
+                return;
+
+            BackwardsCompatibilityData data = new BackwardsCompatibilityData();
+
+            Scribe_Values.Look(ref data.ruinedPercent, "ruinedPercent");
+            Scribe_Values.Look(ref data.ingredientCount, "UF_UniversalFermenter_IngredientCount");
+            Scribe_Values.Look(ref data.progressTicks, "UF_progressTicks");
+            Scribe_Values.Look(ref data.currentProcessIndex, "UF_currentResourceInd");
+            Scribe_Values.Look(ref data.queuedProcessIndex, "UF_queuedProcessIndex");
+
+            backwardsCompatibilityData = data;
+
+            progresses = new List<UF_Progress>();
+            innerContainer = new ThingOwner<Thing>(this);
+            ProductFilter = new ThingFilter(ProductFilterChanged);
+            ProductFilter.CopyAllowancesFrom(Props.defaultFilter);
+
+            IngredientFilter = new ThingFilter(IngredientFilterChanged);
+            foreach (ThingDef def in Props.processes.SelectMany(x => x.ingredientFilter.AllowedThingDefs))
+            {
+                IngredientFilter.SetAllow(def, true);
+            }
+        }
+
+        private void ApplyBackwardsCompatibility()
+        {
+            if (backwardsCompatibilityData == null)
+                return;
+
+            try
+            {
+                BackwardsCompatibilityData data = backwardsCompatibilityData;
+
+                if (progresses.Count > 0 || data.ingredientCount == 0)
+                    return;
+
+                UF_Process? process = Processes[data.currentProcessIndex];
+                if (process == null)
+                    throw new UFException($"Tried to upgrade fermenter {Label} but the current process index was invalid.");
+
+                Thing? ingredients = ThingMaker.MakeThing(process.ingredientFilter.AllowedThingDefs.FirstOrDefault());
+
+                if (ingredients == null)
+                    throw new UFException($"Tried to upgrade fermenter {Label} creating {process}, but could not find any ingredients.");
+
+                ingredients.stackCount = data.ingredientCount;
+
+                AcceptIngredientThing(ingredients);
+
+                progresses.Add(new UF_Progress(this)
+                {
+                    ruinedPercent = data.ruinedPercent,
+                    ProcessIndex = data.currentProcessIndex,
+                    TargetQuality = targetQuality,
+                    storedThings = { ingredients },
+                    ProgressTicks = data.progressTicks
+                });
+            }
+            catch (UFException ex)
+            {
+                Log.Warning(ex.Message);
+            }
+            finally
+            {
+                backwardsCompatibilityData = null;
+            }
+
+        }
 #pragma warning restore 618
     }
 }

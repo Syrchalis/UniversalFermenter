@@ -424,6 +424,7 @@
                   <temperatureIdeal>7.0~45.0</temperatureIdeal>
                   <maxCapacity>35</maxCapacity>
                   <processDays>0.67</processDays>
+                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -447,6 +448,7 @@
                   <usesTemperature>false</usesTemperature>
                   <maxCapacity>30</maxCapacity>
                   <processDays>0.75</processDays>
+                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -467,6 +469,7 @@
                   <usesTemperature>false</usesTemperature>
                   <maxCapacity>50</maxCapacity>
                   <processDays>0.67</processDays>
+                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -487,6 +490,7 @@
                   <usesTemperature>false</usesTemperature>
                   <maxCapacity>80</maxCapacity>
                   <processDays>0.57</processDays>
+                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -575,6 +579,7 @@
                     <max>1.0</max>
                   </windFactor>
                   <graphicSuffix>_full</graphicSuffix>
+                  <processType>Multiple</processType>
                 </li>
               </processes>
             </li>
@@ -700,6 +705,7 @@
                   <maxCapacity>150</maxCapacity>
                   <processDays>2</processDays>
                   <graphicSuffix>Full</graphicSuffix>
+                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -719,6 +725,7 @@
                   </ingredientFilter>
                   <processDays>2</processDays>
                   <graphicSuffix>Full</graphicSuffix>
+                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
