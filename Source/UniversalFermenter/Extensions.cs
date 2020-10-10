@@ -39,5 +39,17 @@ namespace UniversalFermenter
 
             thing.Map?.mapDrawer.MapMeshDirty(thing.Position, MapMeshFlag.Things);
         }
+
+        public static IEnumerable<Thing> ThingsMatching(this ListerThings listerThings, ThingFilter filter)
+        {
+            foreach (ThingDef def in filter.AllowedThingDefs)
+            {
+                foreach (Thing thing in listerThings.ThingsOfDef(def))
+                {
+                    if (filter.Allows(thing))
+                        yield return thing;
+                }
+            }
+        }
     }
 }

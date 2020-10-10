@@ -157,7 +157,7 @@ namespace UniversalFermenter
 
         public bool AnyRuined => progresses.Any(p => p.Ruined);
 
-        public bool AnyIngredientsOnMap => parent.Map.listerThings.ThingsMatching(CombinedIngredientFilter.Value.BestThingRequest).Any();
+        public bool AnyIngredientsOnMap => parent.Map.listerThings.ThingsMatching(IngredientFilter).Any();
 
         public ThingOwner GetDirectlyHeldThings()
         {
@@ -540,6 +540,9 @@ namespace UniversalFermenter
 
             foreach (UF_Progress progress in progresses)
                 progress.DoTicks(ticks);
+
+            if (refuelComp?.Props.consumeFuelOnlyWhenUsed == true && !Empty)
+                refuelComp.ConsumeFuel((refuelComp.Props.fuelConsumptionRate / GenDate.TicksPerDay) * ticks);
         }
 
         public UF_Process? GetProcess(ThingDef ingredient)

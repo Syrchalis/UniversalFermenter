@@ -79,7 +79,8 @@ namespace UniversalFermenter
                 PathEndMode.ClosestTouch, 
                 TraverseParms.For(pawn), 
                 9999f, 
-                x => !x.IsForbidden(pawn) && pawn.CanReserve(x) && filter.Allows(x));
+                x => filter.Allows(x) && !x.IsForbidden(pawn) && pawn.CanReserve(x),
+                pawn.Map.listerThings.ThingsMatching(filter));
         }
     }
 }
