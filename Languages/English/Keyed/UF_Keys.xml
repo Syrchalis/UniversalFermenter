@@ -72,7 +72,7 @@
 	<UF_TabProductFilter>Product</UF_TabProductFilter>
 	<UF_TabIngredientFilter>Filter</UF_TabIngredientFilter>
 	<UF_TabContents>Contents</UF_TabContents>
-	<UF_FermentingItems>Fermenting Items</UF_FermentingItems>
+	<UF_FermentingItems>Processing Items</UF_FermentingItems>
 	<UF_Product>Product</UF_Product>
 	<UF_TargetQuality>Target</UF_TargetQuality>
 
