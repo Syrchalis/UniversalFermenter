@@ -900,6 +900,8 @@ namespace UniversalFermenter
                     storedThings = { ingredients },
                     ProgressTicks = data.progressTicks
                 });
+
+                GraphicChange(false);
             }
             catch (UFException ex)
             {
