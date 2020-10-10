@@ -79,7 +79,7 @@ namespace UniversalFermenter
                 PathEndMode.ClosestTouch, 
                 TraverseParms.For(pawn), 
                 9999f, 
-                x => filter.Allows(x) && !x.IsForbidden(pawn) && pawn.CanReserve(x),
+                x => comp.SpaceLeftFor(x) > 0 && !x.IsForbidden(pawn) && pawn.CanReserve(x),
                 pawn.Map.listerThings.ThingsMatching(filter));
         }
     }

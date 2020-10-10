@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
+using Verse;
 
 namespace UniversalFermenter
 {
@@ -48,6 +49,11 @@ namespace UniversalFermenter
         public static implicit operator Cacheable<T>(Func<T> valueGetter)
         {
             return new Cacheable<T>(valueGetter);
+        }
+
+        public override string ToString()
+        {
+            return Value.ToStringSafe();
         }
     }
 

@@ -549,9 +549,8 @@ namespace UniversalFermenter
         {
             foreach (UF_Process? process in EnabledProcesses)
             {
-                foreach (ThingDef? processIngredient in process.ingredientFilter.AllowedThingDefs)
-                    if (processIngredient == ingredient)
-                        return process;
+                if (process.ingredientFilter.Allows(ingredient))
+                    return process;
             }
 
             return null;
@@ -747,16 +746,22 @@ namespace UniversalFermenter
             return spaceLeftFor.Get(def);
         }
 
+        public int SpaceLeftFor(Thing thing)
+        {
+            int spaceLeft = SpaceLeftFor(thing.def);
+            return spaceLeft == 0 || CombinedIngredientFilter.Value.Allows(thing) == false ? 0 : spaceLeft;
+        }
+
         private int SpaceLeftForInternal(ThingDef def)
         {
-            if (SpaceLeft == 0 || !EnabledProcesses.Any())
+            UF_Process? process = GetProcess(def);
+            if (SpaceLeft == 0 || process == null)
                 return 0;
 
-            if (progresses.Count > 0 && progresses[0].Process.processType == ProcessType.MultipleMixed)
-                return SpaceLeft;
-
-            UF_Process? process = EnabledProcesses.FirstOrDefault(p => p.ingredientFilter.Allows(def));
-            return process == null ? 0 : Mathf.Max(0, process.maxCapacity - IngredientCount);
+            if (progresses.Count > 0 && (progresses[0].Process.processType != ProcessType.MultipleMixed || process.processType != ProcessType.MultipleMixed) && process != progresses[0].Process)
+                return 0; // Has Single or Multiple of different type, no space for this
+            
+            return Mathf.Max(0, process.maxCapacity - IngredientCount);
         }
 
         public void Reset()
@@ -789,7 +794,7 @@ namespace UniversalFermenter
                 return;
 
             string? texPath = parent.def.graphicData.texPath;
-            string? suffix = Processes.FirstOrDefault()?.graphicSuffix;
+            string? suffix = progresses.FirstOrDefault()?.Process.graphicSuffix;
 
             if (!toEmpty && suffix != null)
                 texPath += suffix;
