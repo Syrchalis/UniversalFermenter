@@ -56,6 +56,8 @@ namespace UniversalFermenter
 
         private BackwardsCompatibilityData? backwardsCompatibilityData;
 
+        private int tickCounter;
+
         public CompUniversalFermenter()
         {
             IngredientCount = new Cacheable<int>(() => progresses.Sum(p => p.IngredientCount));
@@ -507,22 +509,17 @@ namespace UniversalFermenter
 
         public override void CompTick()
         {
-            base.CompTick();
             DoTicks(1);
         }
 
         public override void CompTickRare()
         {
-            base.CompTickRare();
+            DoTicks(GenTicks.TickRareInterval);
+        }
 
-            CachesInvalid(true);
-
-            DoTicks(250);
-
-            foreach(UF_Progress progress in progresses)
-            {
-                progress.TickRare();
-            }
+        public override void CompTickLong()
+        {
+            DoTicks(GenTicks.TickLongInterval);
         }
 
         public Tuple<string, string> GetIngredientProductLabels(Thing thing)
@@ -532,6 +529,8 @@ namespace UniversalFermenter
 
         public void DoTicks(int ticks)
         {
+            tickCounter += ticks;
+
             if (backwardsCompatibilityData is not null)
                 ApplyBackwardsCompatibility();
 
@@ -543,6 +542,19 @@ namespace UniversalFermenter
 
             if (refuelComp?.Props.consumeFuelOnlyWhenUsed == true && !Empty)
                 refuelComp.ConsumeFuel((refuelComp.Props.fuelConsumptionRate / GenDate.TicksPerDay) * ticks);
+
+            if (tickCounter >= GenTicks.TickRareInterval)
+            {
+                while(tickCounter >= GenTicks.TickRareInterval)
+                    tickCounter -= GenTicks.TickRareInterval;
+
+                CachesInvalid(true);
+
+                foreach(UF_Progress progress in progresses)
+                {
+                    progress.TickRare();
+                }
+            }
         }
 
         public UF_Process? GetProcess(ThingDef ingredient)
@@ -673,14 +685,14 @@ namespace UniversalFermenter
             if (ingredient is null)
                 return Tuple.Create("Unknown", "Unknown");
 
-            UF_Process? process = GetProcess(ingredient.def);
+            UF_Progress? progress = progresses.Find(p => p.storedThings.Contains(ingredient));
 
-            if (process is null)
+            if (progress is null)
                 return Tuple.Create("Unknown", "Unknown");
 
             return Tuple.Create(
                 ingredient.LabelCap,
-                GenLabel.ThingLabel(process.thingDef, null, Mathf.RoundToInt(ingredient.stackCount * process.efficiency)).CapitalizeFirst());
+                GenLabel.ThingLabel(progress.Process.thingDef, null, Mathf.RoundToInt(ingredient.stackCount * progress.Process.efficiency)).CapitalizeFirst());
         }
 
         public Thing? TakeOutProduct(UF_Progress progress)
