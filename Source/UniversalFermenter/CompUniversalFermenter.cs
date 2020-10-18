@@ -159,7 +159,7 @@ namespace UniversalFermenter
 
         public bool AnyRuined => progresses.Any(p => p.Ruined);
 
-        public bool AnyIngredientsOnMap => parent.Map.listerThings.ThingsMatching(IngredientFilter).Any();
+        public bool AnyIngredientsOnMap => parent.Map.listerThings.ThingsMatching(CombinedIngredientFilter).Any();
 
         public ThingOwner GetDirectlyHeldThings()
         {
@@ -767,7 +767,7 @@ namespace UniversalFermenter
         private int SpaceLeftForInternal(ThingDef def)
         {
             UF_Process? process = GetProcess(def);
-            if (SpaceLeft == 0 || process == null)
+            if (SpaceLeft == 0 || process == null || CombinedIngredientFilter.Value.Allows(def) == false)
                 return 0;
 
             if (progresses.Count > 0 && (progresses[0].Process.processType != ProcessType.MultipleMixed || process.processType != ProcessType.MultipleMixed) && process != progresses[0].Process)
