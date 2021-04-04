@@ -533,81 +533,9 @@
   </Operation>
 
   <!-- Simple Chains: Lumber | Owlchemist.SimpleChains.Lumber-->
-  <Operation Class="PatchOperationFindMod">
-    <mods>
-      <li>Simple Chains: Lumber</li>
-    </mods>
-      <match Class="PatchOperationSequence">
-      <operations>
-        <li Class="PatchOperationRemove">
-          <xpath>*/ThingDef[defName = "Owl_WoodDryingRack"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]</xpath>
-        </li>
-        <li Class="PatchOperationAdd">
-          <xpath>*/ThingDef[defName = "Owl_WoodDryingRack"]/comps</xpath>
-          <value>
-            <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
-              <processes>
-                <li>
-                  <thingDef>WoodLog</thingDef>
-                  <ingredientFilter>
-                    <thingDefs>
-                      <li>Owl_GreenLumber</li>
-                    </thingDefs>
-                  </ingredientFilter>
-                  <usesTemperature>false</usesTemperature>
-                  <maxCapacity>45</maxCapacity>
-                  <processDays>0.67</processDays>
-                  <sunFactor>
-                    <min>0.4</min>
-                    <max>1.0</max>
-                  </sunFactor>
-                  <rainFactor>
-                    <min>1</min>
-                    <max>0</max>
-                  </rainFactor>
-                  <snowFactor>
-                    <min>1</min>
-                    <max>0</max>
-                  </snowFactor>
-                  <windFactor>
-                    <min>0.8</min>
-                    <max>1.0</max>
-                  </windFactor>
-                  <graphicSuffix>_full</graphicSuffix>
-                </li>
-              </processes>
-            </li>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
-          <xpath>*/WorkGiverDef[defName = "UF_WorkGiver_TakeProductOutOfUniversalFermenter"]/giverClass</xpath>
-          <value>
-            <giverClass>UniversalFermenter.WorkGiver_TakeProductOutOfUF</giverClass>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
-          <xpath>*/WorkGiverDef[defName = "UF_WorkGiver_FillUniversalFermenter"]/giverClass</xpath>
-          <value>
-            <giverClass>UniversalFermenter.WorkGiver_FillUF</giverClass>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
-          <xpath>*/JobDef[defName = "FillUniversalFermenter"]/driverClass</xpath>
-          <value>
-            <driverClass>UniversalFermenter.JobDriver_FillUF</driverClass>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
-          <xpath>*/JobDef[defName = "TakeProductOutOfUniversalFermenter"]/driverClass</xpath>
-          <value>
-            <driverClass>UniversalFermenter.JobDriver_TakeProductOutOfUF</driverClass>
-          </value>
-        </li>
-      </operations>
-      </match>
-  </Operation>
+  <!-- Patches are in the mod -->
 
-<!-- Vanilla Factions Expanded - Medieval | OskarPotocki.VanillaFactionsExpanded.MedievalModule -->
+  <!-- Vanilla Factions Expanded - Medieval | OskarPotocki.VanillaFactionsExpanded.MedievalModule -->
   <Operation Class="PatchOperationFindMod">
     <mods>
       <li>Vanilla Factions Expanded - Medieval</li>
@@ -668,6 +596,38 @@
         </li>
         <li Class="PatchOperationRemove">
           <xpath>*/WorkGiverDef[defName = "TakeChemshineOutOfChemshineBarrel" or defName = "FillChemshineBarrel"]</xpath>
+        </li>
+      </operations>
+      </match>
+  </Operation>
+
+  <!-- Vanilla Factions Expanded - Vikings | OskarPotocki.VFE.Vikings -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Vikings</li>
+    </mods>
+      <match Class="PatchOperationSequence">
+      <operations>
+        <li Class="PatchOperationRemove">
+          <xpath>/Defs/ThingDef[defName = "VFEV_MeadFermentingBarrel"]/designationCategory</xpath>
+        </li>
+        <li Class="PatchOperationAdd">
+        <xpath>/Defs/ThingDef[defName = "UniversalFermenter"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]/processes</xpath>
+          <value>
+            <li>
+              <thingDef>VFEV_Mead</thingDef>
+              <ingredientFilter>
+                <thingDefs>
+                  <li>VFEV_Honey</li>
+                </thingDefs>
+              </ingredientFilter>
+              <maxCapacity>75</maxCapacity>
+              <usesQuality>false</usesQuality>
+            </li>
+          </value>
+        </li>
+        <li Class="PatchOperationRemove">
+          <xpath>/Defs/WorkGiverDef[defName = "VFEV_TakeMeadOutOfMeadBarrel" or defName = "VFEV_FillMeadBarrel"]</xpath>
         </li>
       </operations>
       </match>
