@@ -397,10 +397,10 @@
     </match>
   </Operation>
 
-  <!-- [1.1] Ceramics | n7huntsman.ceramics -->
+  <!-- Ceramics | n7huntsman.ceramics -->
   <Operation Class="PatchOperationFindMod">
     <mods>
-      <li>[1.1] Ceramics</li>
+      <li>Ceramics</li>
     </mods>
       <match Class="PatchOperationSequence">
       <operations>
@@ -622,6 +622,8 @@
                 </thingDefs>
               </ingredientFilter>
               <maxCapacity>75</maxCapacity>
+              <processDays>7.7</processDays>
+              <efficiency>0.333</efficiency>
               <usesQuality>false</usesQuality>
             </li>
           </value>
