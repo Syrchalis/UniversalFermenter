@@ -43,6 +43,9 @@ Load Universal Fermenter before any mod that uses it. This ensures that it's ass
 		<li>sarg.rimbees</li>
 		<li>Owlchemist.SimpleChains.Lumber</li>
 	</loadBefore>
+  <loadAfter>
+    <li>VanillaExpanded.VTEXE</li>
+  </loadAfter>
 	<modDependencies>
     <li>
         <packageId>brrainz.harmony</packageId>
