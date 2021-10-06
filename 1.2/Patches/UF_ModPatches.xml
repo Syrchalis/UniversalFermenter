@@ -397,10 +397,10 @@
     </match>
   </Operation>
 
-  <!-- Ceramics | n7huntsman.ceramics -->
+  <!-- [1.1] Ceramics | n7huntsman.ceramics -->
   <Operation Class="PatchOperationFindMod">
     <mods>
-      <li>Ceramics</li>
+      <li>[1.1] Ceramics</li>
     </mods>
       <match Class="PatchOperationSequence">
       <operations>
@@ -561,6 +561,9 @@
             </li>
           </value>
         </li>
+        <li Class="PatchOperationRemove">
+          <xpath>*/WorkGiverDef[defName = "VFEM_TakeBeerOutOfWineBarrel" or defName = "VFEM_FillWineBarrel"]</xpath>
+        </li>
       </operations>
       </match>
   </Operation>
@@ -591,6 +594,9 @@
             </li>
           </value>
         </li>
+        <li Class="PatchOperationRemove">
+          <xpath>*/WorkGiverDef[defName = "TakeChemshineOutOfChemshineBarrel" or defName = "FillChemshineBarrel"]</xpath>
+        </li>
       </operations>
       </match>
   </Operation>
@@ -616,11 +622,12 @@
                 </thingDefs>
               </ingredientFilter>
               <maxCapacity>75</maxCapacity>
-              <processDays>7.7</processDays>
-              <efficiency>0.333</efficiency>
               <usesQuality>false</usesQuality>
             </li>
           </value>
+        </li>
+        <li Class="PatchOperationRemove">
+          <xpath>/Defs/WorkGiverDef[defName = "VFEV_TakeMeadOutOfMeadBarrel" or defName = "VFEV_FillMeadBarrel"]</xpath>
         </li>
       </operations>
       </match>
