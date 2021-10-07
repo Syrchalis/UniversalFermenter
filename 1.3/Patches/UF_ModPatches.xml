@@ -423,7 +423,6 @@
                   <temperatureIdeal>7.0~45.0</temperatureIdeal>
                   <maxCapacity>35</maxCapacity>
                   <processDays>0.67</processDays>
-                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -447,7 +446,6 @@
                   <usesTemperature>false</usesTemperature>
                   <maxCapacity>30</maxCapacity>
                   <processDays>0.75</processDays>
-                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -468,7 +466,6 @@
                   <usesTemperature>false</usesTemperature>
                   <maxCapacity>50</maxCapacity>
                   <processDays>0.67</processDays>
-                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -489,7 +486,6 @@
                   <usesTemperature>false</usesTemperature>
                   <maxCapacity>80</maxCapacity>
                   <processDays>0.57</processDays>
-                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -537,80 +533,7 @@
   </Operation>
 
   <!-- Simple Chains: Lumber | Owlchemist.SimpleChains.Lumber-->
-  <Operation Class="PatchOperationFindMod">
-    <mods>
-      <li>Simple Chains: Lumber</li>
-    </mods>
-      <match Class="PatchOperationSequence">
-      <operations>
-        <li Class="PatchOperationRemove">
-          <xpath>*/ThingDef[defName = "Owl_WoodDryingRack"]/comps/li[@Class="UniversalFermenter.CompProperties_UniversalFermenter"]</xpath>
-        </li>
-        <li Class="PatchOperationAdd">
-          <xpath>*/ThingDef[defName = "Owl_WoodDryingRack"]/comps</xpath>
-          <value>
-            <li Class="UniversalFermenter.CompProperties_UniversalFermenter">
-              <processes>
-                <li>
-                  <thingDef>WoodLog</thingDef>
-                  <ingredientFilter>
-                    <thingDefs>
-                      <li>Owl_GreenLumber</li>
-                    </thingDefs>
-                  </ingredientFilter>
-                  <usesTemperature>false</usesTemperature>
-                  <maxCapacity>45</maxCapacity>
-                  <processDays>0.67</processDays>
-                  <sunFactor>
-                    <min>0.4</min>
-                    <max>1.0</max>
-                  </sunFactor>
-                  <rainFactor>
-                    <min>1</min>
-                    <max>0</max>
-                  </rainFactor>
-                  <snowFactor>
-                    <min>1</min>
-                    <max>0</max>
-                  </snowFactor>
-                  <windFactor>
-                    <min>0.8</min>
-                    <max>1.0</max>
-                  </windFactor>
-                  <graphicSuffix>_full</graphicSuffix>
-                  <processType>Multiple</processType>
-                </li>
-              </processes>
-            </li>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
-          <xpath>*/WorkGiverDef[defName = "UF_WorkGiver_TakeProductOutOfUniversalFermenter"]/giverClass</xpath>
-          <value>
-            <giverClass>UniversalFermenter.WorkGiver_TakeProductOutOfUF</giverClass>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
-          <xpath>*/WorkGiverDef[defName = "UF_WorkGiver_FillUniversalFermenter"]/giverClass</xpath>
-          <value>
-            <giverClass>UniversalFermenter.WorkGiver_FillUF</giverClass>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
-          <xpath>*/JobDef[defName = "FillUniversalFermenter"]/driverClass</xpath>
-          <value>
-            <driverClass>UniversalFermenter.JobDriver_FillUF</driverClass>
-          </value>
-        </li>
-        <li Class="PatchOperationReplace">
-          <xpath>*/JobDef[defName = "TakeProductOutOfUniversalFermenter"]/driverClass</xpath>
-          <value>
-            <driverClass>UniversalFermenter.JobDriver_TakeProductOutOfUF</driverClass>
-          </value>
-        </li>
-      </operations>
-      </match>
-  </Operation>
+  <!-- Patches are in the mod -->
 
   <!-- Vanilla Factions Expanded - Medieval | OskarPotocki.VanillaFactionsExpanded.MedievalModule -->
   <Operation Class="PatchOperationFindMod">
@@ -729,7 +652,6 @@
                   <maxCapacity>150</maxCapacity>
                   <processDays>2</processDays>
                   <graphicSuffix>Full</graphicSuffix>
-                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>
@@ -749,7 +671,6 @@
                   </ingredientFilter>
                   <processDays>2</processDays>
                   <graphicSuffix>Full</graphicSuffix>
-                  <processType>MultipleMixed</processType>
                 </li>
               </processes>
             </li>

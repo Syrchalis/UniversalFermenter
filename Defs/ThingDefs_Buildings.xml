@@ -6,6 +6,7 @@
     <label>fermenting barrel</label>
     <description>A barrel for fermenting various things into other products.</description>
     <thingClass>UniversalFermenter.Building_ColorCoded</thingClass>
+    <drawerType>MapMeshAndRealTime</drawerType>
     <graphicData>
       <texPath>Things/Building/Production/UF_Barrel</texPath>
       <graphicClass>Graphic_Multi</graphicClass>
