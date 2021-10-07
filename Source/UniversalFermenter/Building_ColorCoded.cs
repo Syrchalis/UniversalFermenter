@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
-using RimWorld;
+﻿using UnityEngine;
 using Verse;
 
 namespace UniversalFermenter
@@ -16,11 +10,7 @@ namespace UniversalFermenter
             get
             {
                 CompUniversalFermenter comp = this.TryGetComp<CompUniversalFermenter>();
-                if (comp != null && comp.CurrentProcess.colorCoded)
-                {
-                    return comp.CurrentProcess.color;
-                }
-                return DrawColor;
+                return comp?.SingleProductDef != null && comp.SingleProductDef.colorCoded ? comp.SingleProductDef.color : DrawColor;
             }
         }
     }

@@ -1,385 +1,248 @@
 ﻿// Notes:
 //   * parent.Map is null when the building (parent) is minified (uninstalled).
 
+#nullable enable
+using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Linq;
-using UnityEngine;
+using System.Text;
+using HarmonyLib;
 using RimWorld;
+using UnityEngine;
 using Verse;
 
 namespace UniversalFermenter
 {
-    public class CompUniversalFermenter : ThingComp
+    public class CompUniversalFermenter : ThingComp, IThingHolder
     {
-        public int progressTicks;
-        public float ruinedPercent;
-        private Material barFilledCachedMat;
-        public int currentProcessIndex;
-        public int queuedProcessIndex;
+        private readonly Cacheable<string> compInspectStringExtra;
+        private readonly Cacheable<Dictionary<Thing, Tuple<string, string>>> ingredientProductLabels;
+        private readonly CacheableDict<ThingDef, int> spaceLeftFor;
+
+        /// <summary>Possible flickable component on the fermenter.</summary>
+        public CompFlickable? flickComp;
+
+        /// <summary>Is a graphics change request queued?</summary>
+        public bool graphicChangeQueued;
+
+        public ThingOwner<Thing> innerContainer = null!;
+
+        public ThingFilter ParentIngredientFilter { get; } = new ThingFilter();
+
+        /// <summary>Possible power trader component on the fermenter.</summary>
+        public CompPowerTrader? powerTradeComp;
+
+        private Dictionary<ThingDef?, UF_Process> processesByProduct = null!;
+
+        public List<UF_Progress> progresses = new List<UF_Progress>();
+
+        /// <summary>Possible refuelable component on the fermenter.</summary>
+        public CompRefuelable? refuelComp;
+
+        /// <summary>Selected target quality for fermentation.</summary>
         public QualityCategory targetQuality = QualityCategory.Normal;
 
-        private int ingredientCount;
-        private List<string> ingredientLabels = new List<string>();
-        public List<ThingDef> inputIngredients = new List<ThingDef>();
-        public bool graphicChangeQueued = false;
+        /// <summary>Current filter for products the fermenter can make.</summary>
+        public ThingFilter ProductFilter = new ThingFilter();
 
-        public CompRefuelable refuelComp;
-        public CompPowerTrader powerTradeComp;
-        public CompFlickable flickComp;
+        /// <summary>Parent filter for products (includes all possible products).</summary>
+        public ThingFilter ParentProductFilter = new ThingFilter();
 
-        //----------------------------------------------------------------------------------------------------
-        // Properties
-        public CompProperties_UniversalFermenter Props => (CompProperties_UniversalFermenter)props;
+        /// <summary>Current filter for ingredients the fermenter can use.</summary>
+        public ThingFilter IngredientFilter;
 
-        public bool Ruined => ruinedPercent >= 1f;
-        public bool Empty => ingredientCount <= 0;
-        public bool Finished => !Empty && ProgressPercent >= 1f;
-        public int SpaceLeftForIngredient => Finished ? 0 : CurrentProcess.maxCapacity - ingredientCount;
-        public int ProgressTicks
+        /// <summary>Filter for ingredients which combines IngredientFilter and ParentIngredientFilter.</summary>
+        public Cacheable<ThingFilter> CombinedIngredientFilter;
+
+        private BackwardsCompatibilityData? backwardsCompatibilityData;
+
+        private int tickCounter;
+
+        public CompUniversalFermenter()
         {
-            get => progressTicks;
-            set
-            {
-                if (value == progressTicks)
-                {
-                    return;
-                }
-                progressTicks = value;
-                barFilledCachedMat = null;
-            }
+            IngredientCount = new Cacheable<int>(() => progresses.Sum(p => p.IngredientCount));
+            SpaceLeft = new Cacheable<int>(() => Mathf.Max(0, MaxCapacity - IngredientCount));
+            spaceLeftFor = new CacheableDict<ThingDef, int>(SpaceLeftForInternal);
+            RoofCoverage = new Cacheable<float>(CalcRoofCoverage);
+            compInspectStringExtra = new Cacheable<string>(GetCompInspectStringExtra);
+            ingredientProductLabels = new Cacheable<Dictionary<Thing, Tuple<string, string>>>(() => innerContainer.ToDictionary(t => t, GetIngredientProductLabel));
+            IngredientFilter = new ThingFilter(IngredientFilterChanged);
+            CombinedIngredientFilter = new Cacheable<ThingFilter>(GetCombinedIngredientFilter);
         }
-        public float ProgressDays => (float)ProgressTicks / GenDate.TicksPerDay;
-        public float ProgressPercent
+
+        /// <summary>Gets the component properties for this component.</summary>
+        public CompProperties_UniversalFermenter Props => (CompProperties_UniversalFermenter) props;
+
+        /// <summary>Gets whether the fermenter is empty.</summary>
+        public bool Empty => progresses.Count == 0;
+
+        /// <summary>The maximum number of ingredients that the fermenter can currently hold.</summary>
+        public int MaxCapacity
         {
             get
             {
-                if (CurrentProcess.usesQuality)
+                if (progresses.Count > 0)
                 {
-                    return ProgressDays / DaysToReachTargetQuality;
+                    return progresses[0].Process.processType != ProcessType.MultipleMixed
+                        ? progresses[0].Process.maxCapacity
+                        : Processes.Where(p => p.processType == ProcessType.MultipleMixed).Max(p => p.maxCapacity);
                 }
-                return ProgressDays / CurrentProcess.processDays;
-            }
-        }
-        public UF_Process CurrentProcess
-        {
-            get => Props.processes[currentProcessIndex];
-            set
-            {
-                if (Props.processes.Contains(value))
-                {
-                    if (Empty)
-                    {
-                        currentProcessIndex = Props.processes.IndexOf(value);
-                        if (!value.usesQuality)
-                        {
-                            TargetQuality = QualityCategory.Normal;
-                        }
-                        if (value.colorCoded)
-                        {
-                            parent.Notify_ColorChanged();
-                        }
-                    }
-                    queuedProcessIndex = Props.processes.IndexOf(value);
-                }
+
+                return Processes.Max(p => p.maxCapacity);
             }
         }
 
-        public int EstimatedTicksLeft
+        /// <summary>Gets the amount of space left in the fermenter for more ingredients.</summary>
+        public Cacheable<int> SpaceLeft { get; }
+
+        /// <summary>The total number of ingredients in this fermenter.</summary>
+        public Cacheable<int> IngredientCount { get; }
+
+        public string Label => parent.Label;
+
+        private List<UF_Process> Processes => Props.processes;
+
+        public UF_Process? SingleProductDef
         {
             get
             {
-                if (CurrentSpeedFactor <= 0)
-                {
-                    return -1;
-                }
-                else if (CurrentProcess.usesQuality)
-                {
-                    return Mathf.Max(Mathf.RoundToInt((DaysToReachTargetQuality * GenDate.TicksPerDay) - ProgressTicks), 0);
-                }
-                else
-                {
-                    return Mathf.Max(Mathf.RoundToInt((CurrentProcess.processDays * GenDate.TicksPerDay) - ProgressTicks), 0);
-                }
+                if (progresses.Count > 0 && progresses[0].Process.processType != ProcessType.MultipleMixed)
+                    return progresses[0].Process;
+                return Processes.Count == 1 && Processes[0].processType != ProcessType.MultipleMixed ? Processes[0] : null;
             }
         }
 
-        public QualityCategory TargetQuality
+        /// <summary>How much of the building is under a roof.</summary>
+        public Cacheable<float> RoofCoverage { get; }
+
+        public IEnumerable<UF_Process> EnabledProcesses
         {
-            get => targetQuality;
-            set
+            get
             {
-                if (value == targetQuality)
-                {
-                    return;
-                }
-                targetQuality = value;
-                barFilledCachedMat = null;
+                foreach (ThingDef? product in ProductFilter.AllowedThingDefs)
+                    yield return processesByProduct[product];
             }
         }
 
-        public QualityCategory CurrentQuality
+        public IEnumerable<ThingDef> AcceptedThings
         {
             get
             {
-                if (ProgressDays < CurrentProcess.qualityDays.poor)
-                    return QualityCategory.Awful;
-                if (ProgressDays < CurrentProcess.qualityDays.normal)
-                    return QualityCategory.Poor;
-                if (ProgressDays < CurrentProcess.qualityDays.good)
-                    return QualityCategory.Normal;
-                if (ProgressDays < CurrentProcess.qualityDays.excellent)
-                    return QualityCategory.Good;
-                if (ProgressDays < CurrentProcess.qualityDays.masterwork)
-                    return QualityCategory.Excellent;
-                if (ProgressDays < CurrentProcess.qualityDays.legendary)
-                    return QualityCategory.Masterwork;
-                if (ProgressDays >= CurrentProcess.qualityDays.legendary)
-                    return QualityCategory.Legendary;
-                return QualityCategory.Normal;
-            }
-        }
-
-        public float DaysToReachTargetQuality
-        {
-            get
-            {
-                switch (targetQuality)
-                {
-                    case QualityCategory.Awful:
-                        return CurrentProcess.qualityDays.awful;
-                    case QualityCategory.Poor:
-                        return CurrentProcess.qualityDays.poor;
-                    case QualityCategory.Normal:
-                        return CurrentProcess.qualityDays.normal;
-                    case QualityCategory.Good:
-                        return CurrentProcess.qualityDays.good;
-                    case QualityCategory.Excellent:
-                        return CurrentProcess.qualityDays.excellent;
-                    case QualityCategory.Masterwork:
-                        return CurrentProcess.qualityDays.masterwork;
-                    case QualityCategory.Legendary:
-                        return CurrentProcess.qualityDays.legendary;
-                    default:
-                        return CurrentProcess.qualityDays.normal;
-                }
-            }
-        }
-
-        private Material BarFilledMat
-        {
-            get
-            {
-                if (barFilledCachedMat == null)
-                {
-                    barFilledCachedMat = SolidColorMaterials.SimpleSolidColorMaterial(Color.Lerp(Static_Bar.ZeroProgressColor, Static_Bar.FermentedColor, ProgressPercent), false);
-                }
-                return barFilledCachedMat;
-            }
-        }
-
-        public float CurrentSpeedFactor
-        {
-            get
-            {
-                return Mathf.Max(CurrentTemperatureFactor * CurrentSunFactor * CurrentRainFactor * CurrentSnowFactor * CurrentWindFactor, 0f);
-            }
-        }
-
-        private float CurrentTemperatureFactor
-        {
-            get
-            {
-                if (!CurrentProcess.usesTemperature)
-                {
-                    return 1f;
-                }
-                float ambientTemperature = parent.AmbientTemperature;
-                // Temperature out of a safe range
-                if (ambientTemperature < CurrentProcess.temperatureSafe.min)
-                {
-                    return CurrentProcess.speedBelowSafe;
-                }
-                else if (ambientTemperature > CurrentProcess.temperatureSafe.max)
-                {
-                    return CurrentProcess.speedAboveSafe;
-                }
-                // Temperature out of an ideal range but still within a safe range
-                if (ambientTemperature < CurrentProcess.temperatureIdeal.min)
-                {
-                    return GenMath.LerpDouble(CurrentProcess.temperatureSafe.min, CurrentProcess.temperatureIdeal.min, CurrentProcess.speedBelowSafe, 1f, ambientTemperature);
-                }
-                else if (ambientTemperature > CurrentProcess.temperatureIdeal.max)
-                {
-                    return GenMath.LerpDouble(CurrentProcess.temperatureIdeal.max, CurrentProcess.temperatureSafe.max, 1f, CurrentProcess.speedAboveSafe, ambientTemperature);
-                }
-                // Temperature within an ideal range
-                return 1f;
-            }
-        }
-
-        public float CurrentSunFactor
-        {
-            get
-            {
-                if (parent.Map == null)
-                {
-                    return 0f;
-                }
-                if (CurrentProcess.sunFactor.Span == 0)
-                {
-                    return 1f;
-                }
-                float skyGlow = parent.Map.skyManager.CurSkyGlow * (1 - RoofCoverage);
-                return GenMath.LerpDouble(Static_Weather.SunGlowRange.TrueMin, Static_Weather.SunGlowRange.TrueMax,
-                                          CurrentProcess.sunFactor.min, CurrentProcess.sunFactor.max,
-                                          skyGlow);
-            }
-        }
-
-        public float CurrentRainFactor
-        {
-            get
-            {
-                if (parent.Map == null)
-                {
-                    return 0f;
-                }
-                if (CurrentProcess.rainFactor.Span == 0)
-                {
-                    return 1f;
-                }
-                // When snowing, the game also increases RainRate.
-                // Therefore, non-zero SnowRate puts RainRespect to a state as if it was not raining.
-                if (parent.Map.weatherManager.SnowRate != 0)
-                {
-                    return CurrentProcess.rainFactor.min;
-                }
-                float rainRate = parent.Map.weatherManager.RainRate * (1 - RoofCoverage);
-                return GenMath.LerpDouble(Static_Weather.RainRateRange.TrueMin, Static_Weather.RainRateRange.TrueMax,
-                                          CurrentProcess.rainFactor.min, CurrentProcess.rainFactor.max,
-                                          rainRate);
-            }
-        }
-
-        public float CurrentSnowFactor
-        {
-            get
-            {
-                if (parent.Map == null)
-                {
-                    return 0f;
-                }
-                if (CurrentProcess.snowFactor.Span == 0)
-                {
-                    return 1f;
-                }
-                float snowRate = parent.Map.weatherManager.SnowRate * (1 - RoofCoverage);
-                return GenMath.LerpDouble(Static_Weather.SnowRateRange.TrueMin, Static_Weather.SnowRateRange.TrueMax,
-                                          CurrentProcess.snowFactor.min, CurrentProcess.snowFactor.max,
-                                          snowRate);
-            }
-        }
-
-        public float CurrentWindFactor
-        {
-            get
-            {
-                if (parent.Map == null)
-                {
-                    return 0f;
-                }
-                if (CurrentProcess.windFactor.Span == 0)
-                {
-                    return 1f;
-                }
-                if (RoofCoverage != 0)
-                {
-                    return CurrentProcess.windFactor.min;
-                }
-                return GenMath.LerpDouble(Static_Weather.WindSpeedRange.TrueMin, Static_Weather.WindSpeedRange.TrueMax,
-                                          CurrentProcess.windFactor.min, CurrentProcess.windFactor.max,
-                                          parent.Map.windManager.WindSpeed);
-            }
-        }
-
-        public float RoofCoverage  // How much of the building is under a roof
-        {
-            get
-            {
-                if (parent.Map == null)
-                {
-                    return 0f;
-                }
-                int allTiles = 0;
-                int roofedTiles = 0;
-                foreach (IntVec3 current in parent.OccupiedRect())
-                {
-                    allTiles++;
-                    if (parent.Map.roofGrid.Roofed(current))
-                    {
-                        roofedTiles++;
-                    }
-                }
-                return (float)roofedTiles / (float)allTiles;
-            }
-        }
-        
-        public string SummaryAddedIngredients
-        {
-            get
-            {
-                string summary = "";
-                if (ingredientLabels.Count > 0)
-                {
-                    for (int i = 0; i < ingredientLabels.Count; i++)
-                    {
-                        if (i == 0)
-                        {
-                            summary += ingredientLabels[i];
-                        }
-                        else
-                        {
-                            summary += ", " + ingredientLabels[i];
-                        }
-                    }
-                }
-                else
-                {
-                    summary += CurrentProcess.ingredientFilter.Summary;
-                }
-                int substractLength;
-                int maxSummaryLength;
-                int lineLength = 60;
-                substractLength = ("Contains " + CurrentProcess.maxCapacity.ToString() + "/" + CurrentProcess.maxCapacity.ToString() + " ").Length;
-                maxSummaryLength = lineLength - substractLength;
-                return UF_Utility.VowelTrim(summary, maxSummaryLength);
+                foreach (UF_Process process in EnabledProcesses)
+                foreach (ThingDef? ingredient in process.ingredientFilter.AllowedThingDefs)
+                    yield return ingredient;
             }
         }
 
         public bool Fueled => refuelComp == null || refuelComp.HasFuel;
+
         public bool Powered => powerTradeComp == null || powerTradeComp.PowerOn;
+
         public bool FlickedOn => flickComp == null || flickComp.SwitchIsOn;
 
-        //----------------------------------------------------------------------------------------------------
-        // Overrides
+        public bool TemperatureOk
+        {
+            get
+            {
+                float temp = parent.AmbientTemperature;
+                foreach (var process in EnabledProcesses)
+                {
+                    if (temp >= process.temperatureSafe.min - 2 || temp <= process.temperatureSafe.max + 2)
+                        return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool AnyFinished => progresses.Any(p => p.Finished);
+
+        public bool AnyRuined => progresses.Any(p => p.Ruined);
+
+        public bool AnyIngredientsOnMap => parent.Map.listerThings.ThingsMatching(CombinedIngredientFilter).Any();
+
+        public ThingOwner GetDirectlyHeldThings()
+        {
+            return innerContainer;
+        }
+
+        public void GetChildHolders(List<IThingHolder> outChildren)
+        {
+            ThingOwnerUtility.AppendThingHoldersFromThings(outChildren, GetDirectlyHeldThings());
+        }
+
+        private void ProductFilterChanged()
+        {
+            // Reset parent ingredient filter
+            ParentIngredientFilter.SetDisallowAll();
+            foreach (ThingDef def in AcceptedThings)
+            {
+                ParentIngredientFilter.SetAllow(def, true);
+            }
+        }
+
+        private void IngredientFilterChanged()
+        {
+            CombinedIngredientFilter.Invalidate();
+        }
+
+        private ThingFilter GetCombinedIngredientFilter()
+        {
+            ThingFilter filter = new ThingFilter();
+            filter.CopyAllowancesFrom(IngredientFilter);
+
+            foreach (ThingDef def in filter.AllowedThingDefs.ToList())
+            {
+                if (!ParentIngredientFilter.Allows(def))
+                    filter.SetAllow(def, false);
+            }
+
+            return filter;
+        }
 
         public override void Initialize(CompProperties props)
         {
             base.Initialize(props);
+
+            processesByProduct = Processes.ToDictionary(x => x.thingDef, x => x);
             refuelComp = parent.GetComp<CompRefuelable>();
             powerTradeComp = parent.GetComp<CompPowerTrader>();
             flickComp = parent.GetComp<CompFlickable>();
+            innerContainer = new ThingOwner<Thing>(this);
+            ProductFilter = new ThingFilter(ProductFilterChanged);
+            ProductFilter.CopyAllowancesFrom(Props.defaultFilter);
+
+            parent.def.inspectorTabsResolved ??= new List<InspectTabBase>();
+
+            if (!parent.def.inspectorTabsResolved.Any(t => t is ITab_UFContents))
+            {
+                if (Props.processes.Count > 1)
+                    parent.def.inspectorTabsResolved.Add(InspectTabManager.GetSharedInstance(typeof(ITab_UFProductFilter)));
+                parent.def.inspectorTabsResolved.Add(InspectTabManager.GetSharedInstance(typeof(ITab_UFIngredientFilter)));
+                parent.def.inspectorTabsResolved.Add(InspectTabManager.GetSharedInstance(typeof(ITab_UFContents)));
+            }
+
+            // Defaults for filters
+            foreach(UF_Process process in Props.processes)
+            {
+                ParentProductFilter.SetAllow(process.thingDef, true);
+            }
+
+            ProductFilterChanged();
+
+            foreach (ThingDef def in Props.processes.SelectMany(x => x.ingredientFilter.AllowedThingDefs))
+            {
+                IngredientFilter.SetAllow(def, true);
+            }
         }
 
         public override void PostSpawnSetup(bool respawningAfterLoad)
         {
             base.PostSpawnSetup(respawningAfterLoad);
             parent.Map.GetComponent<MapComponent_UF>().Register(parent);
+
             if (!Empty)
-            {
                 graphicChangeQueued = true;
-            }
         }
 
         public override void PostDeSpawn(Map map)
@@ -387,44 +250,28 @@ namespace UniversalFermenter
             base.PostDeSpawn(map);
             map.GetComponent<MapComponent_UF>().Deregister(parent);
         }
-        
-        public override void PostExposeData()
-        {
-            Scribe_Values.Look(ref ruinedPercent, "ruinedPercent", 0f);
-            Scribe_Values.Look(ref ingredientCount, "UF_UniversalFermenter_IngredientCount", 0);
-            Scribe_Values.Look(ref progressTicks, "UF_progressTicks", 0);
-            Scribe_Values.Look(ref currentProcessIndex, "UF_currentResourceInd", 0);
-            Scribe_Values.Look(ref queuedProcessIndex, "UF_queuedProcessIndex", 0);
-            Scribe_Values.Look(ref targetQuality, "targetQuality", QualityCategory.Normal);
-            Scribe_Collections.Look(ref ingredientLabels, "UF_ingredientLabels");
-        }
 
         public override IEnumerable<Gizmo> CompGetGizmosExtra()
         {
             //Dev options			
             if (Prefs.DevMode)
-            {
                 yield return UF_Utility.DebugGizmo();
-            }
+
             //Default buttons
-            foreach (Gizmo c in base.CompGetGizmosExtra())
-            {
-                yield return c;
-            }
-            //Switching products button (no button if only 1 resource)
-            if (Props.processes.Count > 1)
-            {
-                yield return UF_Utility.processGizmos[CurrentProcess];
-            }
-            if (CurrentProcess.usesQuality)
-            {
-                yield return UF_Utility.qualityGizmos[TargetQuality];
-            }
+            foreach (Gizmo gizmo in base.CompGetGizmosExtra())
+                yield return gizmo;
+
+            if (Processes.Any(process => process.usesQuality))
+                yield return UF_Utility.qualityGizmos[targetQuality];
+
+            foreach (var gizmo in UF_Clipboard.CopyPasteGizmosFor(this))
+                yield return gizmo;
         }
 
         public override void PostDraw()
         {
             base.PostDraw();
+
             if (!Empty)
             {
                 if (graphicChangeQueued)
@@ -432,389 +279,660 @@ namespace UniversalFermenter
                     GraphicChange(false);
                     graphicChangeQueued = false;
                 }
-                bool showCurrentQuality = CurrentProcess.usesQuality && UF_Settings.showCurrentQualityIcon;
+
+                bool showCurrentQuality = progresses[0].Process.processType == ProcessType.Single && progresses[0].Process.usesQuality && UF_Settings.showCurrentQualityIcon;
                 Vector3 drawPos = parent.DrawPos;
                 drawPos.x += Props.barOffset.x - (showCurrentQuality ? 0.1f : 0f);
                 drawPos.y += 0.05f;
                 drawPos.z += Props.barOffset.y;
-                GenDraw.DrawFillableBar(new GenDraw.FillableBarRequest
+
+                Vector2 size = Static_Bar.Size * Props.barScale;
+
+                // Border
+                Graphics.DrawMesh(MeshPool.plane10, Matrix4x4.TRS(drawPos, Quaternion.identity, new Vector3(size.x + 0.1f, 1, size.y + 0.1f)), Static_Bar.UnfilledMat, 0);
+
+                float xPosAccum = 0;
+                for (int i = 0; i < progresses.Count; i++)
                 {
-                    center = drawPos,
-                    size = Static_Bar.Size * Props.barScale,
-                    fillPercent = ingredientCount / (float)CurrentProcess.maxCapacity,
-                    filledMat = BarFilledMat,
-                    unfilledMat = Static_Bar.UnfilledMat,
-                    margin = 0.1f,
-                    rotation = Rot4.North
-                });
+                    UF_Progress? progress = progresses[i];
+                    float width = size.x * ((float) progress.IngredientCount / MaxCapacity);
+                    float xPos = (drawPos.x - (size.x / 2.0f)) + (width / 2.0f) + xPosAccum;
+                    xPosAccum += width;
+                    Graphics.DrawMesh(MeshPool.plane10, Matrix4x4.TRS(new Vector3(xPos, drawPos.y + 0.01f, drawPos.z), Quaternion.identity, new Vector3(width, 1, size.y)), progress.ProgressColorMaterial, 0);
+                }
+
                 if (showCurrentQuality) // show small icon for current quality over bar
                 {
                     drawPos.y += 0.02f;
                     drawPos.x += 0.45f * Props.barScale.x;
-                    Matrix4x4 matrix2 = default(Matrix4x4);
+                    Matrix4x4 matrix2 = default;
                     matrix2.SetTRS(drawPos, Quaternion.identity, new Vector3(0.2f * Props.barScale.x, 1f, 0.2f * Props.barScale.y));
-                    Graphics.DrawMesh(MeshPool.plane10, matrix2, UF_Utility.qualityMaterials[CurrentQuality], 0);
+                    Graphics.DrawMesh(MeshPool.plane10, matrix2, UF_Utility.qualityMaterials[progresses[0].CurrentQuality], 0);
                 }
             }
-            if (CurrentProcess != null && UF_Settings.showProcessIconGlobal && Props.showProductIcon)
+
+            UF_Process? singleProduct = SingleProductDef;
+            if (UF_Settings.showProcessIconGlobal && Props.showProductIcon && singleProduct != null)
             {
                 Vector3 drawPos = parent.DrawPos;
                 float sizeX = UF_Settings.processIconSize * Props.productIconSize.x;
                 float sizeZ = UF_Settings.processIconSize * Props.productIconSize.y;
-                if (Props.processes.Count == 1 && CurrentProcess.usesQuality) // show larger, centered quality icon if object has only one process
+                if (Processes.Count == 1 && !Empty && singleProduct.usesQuality) // show larger, centered quality icon if object has only one process
                 {
                     drawPos.y += 0.02f;
                     drawPos.z += 0.05f;
-                    Matrix4x4 matrix = default(Matrix4x4);
+                    Matrix4x4 matrix = default;
                     matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(0.6f * sizeX, 1f, 0.6f * sizeZ));
-                    Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.qualityMaterials[TargetQuality], 0);
+                    Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.qualityMaterials[progresses[0].TargetQuality], 0);
                 }
-                else if (Props.processes.Count > 1) // show process icon if object has more than one process
+                else if (Processes.Count > 1 && !Empty) // show process icon if object has more than one process
                 {
                     drawPos.y += 0.02f;
                     drawPos.z += 0.05f;
-                    Matrix4x4 matrix = default(Matrix4x4);
+                    Matrix4x4 matrix = default;
                     matrix.SetTRS(drawPos, Quaternion.identity, new Vector3(sizeX, 1f, sizeZ));
-                    Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.processMaterials[CurrentProcess], 0);
-                    if (CurrentProcess.usesQuality && UF_Settings.showTargetQualityIcon) // show small offset quality icon if object also uses quality
+                    Graphics.DrawMesh(MeshPool.plane10, matrix, UF_Utility.processMaterials[singleProduct], 0);
+                    if (progresses.Count > 0 && singleProduct.usesQuality && UF_Settings.showTargetQualityIcon) // show small offset quality icon if object also uses quality
                     {
                         drawPos.y += 0.01f;
                         drawPos.x += 0.25f * sizeX;
                         drawPos.z -= 0.35f * sizeZ;
-                        Matrix4x4 matrix2 = default(Matrix4x4);
+                        Matrix4x4 matrix2 = default;
                         matrix2.SetTRS(drawPos, Quaternion.identity, new Vector3(0.4f * sizeX, 1f, 0.4f * sizeZ));
-                        Graphics.DrawMesh(MeshPool.plane10, matrix2, UF_Utility.qualityMaterials[TargetQuality], 0);
+                        Graphics.DrawMesh(MeshPool.plane10, matrix2, UF_Utility.qualityMaterials[progresses[0].TargetQuality], 0);
                     }
                 }
             }
-        }
-
-        public override void PreAbsorbStack(Thing otherStack, int count)
-        {
-            float t = (float)count / (float)(parent.stackCount + count);
-            CompUniversalFermenter comp = ((ThingWithComps)otherStack).GetComp<CompUniversalFermenter>();
-            ruinedPercent = Mathf.Lerp(ruinedPercent, comp.ruinedPercent, t);
-        }
-
-        public override bool AllowStackWith(Thing other)
-        {
-            CompUniversalFermenter comp = ((ThingWithComps)other).GetComp<CompUniversalFermenter>();
-            return Ruined == comp.Ruined;
-        }
-
-        public override void PostSplitOff(Thing piece)
-        {
-            CompUniversalFermenter comp = ((ThingWithComps)piece).GetComp<CompUniversalFermenter>();
-            comp.ruinedPercent = ruinedPercent;
         }
 
         // Inspector string eats max. 5 lines - there is room for one more
         public override string CompInspectStringExtra()
         {
-            StringBuilder stringBuilder = new StringBuilder();
+            return compInspectStringExtra;
+        }
 
-            // 1st line: "Temperature: xx C (Overheating/Freezing/Ideal/Safe)" or "Ruined by temperature"
-            if (CurrentProcess.usesTemperature)
-            {
-                stringBuilder.AppendLine(StatusInfo());
-            }
+        private string GetCompInspectStringExtra()
+        {
+            // Perf: Only recalculate this inspect string periodically
+            if (progresses.Count == 0)
+                return "UF_NoIngredient".TranslateSimple();
 
-            // 2nd line: "Contains xx/xx ingredient (product)"
-            if (!Ruined)
+            StringBuilder str = new StringBuilder();
+
+            // Line 1. Show the current number of items in the fermenter
+            UF_Process? singleDef = SingleProductDef;
+            if (singleDef != null)
             {
-                if (CurrentProcess.usesQuality && ProgressDays >= CurrentProcess.qualityDays.awful)
+                if (singleDef.processType == ProcessType.Single && progresses.Count == 1 && singleDef.usesQuality && progresses[0].ProgressDays >= singleDef.qualityDays.awful)
                 {
-                    stringBuilder.AppendLine("UF_ContainsProduct".Translate(ingredientCount, CurrentProcess.maxCapacity, CurrentProcess.thingDef.label) + " (" + CurrentQuality.GetLabel().ToLower() + ")");
-                }
-                else if (Finished)
-                {
-                    stringBuilder.AppendLine("UF_ContainsProduct".Translate(ingredientCount, CurrentProcess.maxCapacity, CurrentProcess.thingDef.label));
+                    UF_Progress progress = progresses[0];
+                    str.AppendTagged("UF_ContainsProduct".Translate(MaxCapacity - SpaceLeft, MaxCapacity, singleDef.thingDef.Named("PRODUCT"), progress.CurrentQuality.GetLabel().ToLower().Named("QUALITY")));
                 }
                 else
                 {
-                    stringBuilder.AppendLine("UF_ContainsIngredient".Translate(ingredientCount, CurrentProcess.maxCapacity, SummaryAddedIngredients));
+                    // Usually this will only be one def label shown
+                    string ingredientLabels = singleDef.ingredientFilter.AllowedThingDefs.Select(d => d.label).Join();
+                    str.AppendTagged("UF_ContainsIngredient".Translate(MaxCapacity - SpaceLeft, MaxCapacity, ingredientLabels.Named("INGREDIENTS")));
                 }
             }
-
-            // 3rd line: "Finished" or "Progress: xx %" 
-            // 4th line: "Non-ideal temp, sun, ... . Ferm. speed: xx %"
-            if (!Empty)
+            else
             {
-                if (Finished)
+                str.AppendTagged("UF_ContainsIngredientsGeneric".Translate(MaxCapacity - SpaceLeft, MaxCapacity));
+            }
+
+            str.AppendLine();
+
+            // Line 2. Show how many processes are running, or the current status of the process
+            if (singleDef == null || singleDef.processType == ProcessType.Multiple)
+            {
+                int running = progresses.Count(p => p.Running);
+                str.AppendTagged("UF_NumProcessing".Translate(running, running == 1
+                    ? "UF_RunningStacksNoun".Translate().Named("STACKS")
+                    : Find.ActiveLanguageWorker.Pluralize("UF_RunningStacksNoun".Translate(), running).Named("STACKS")));
+
+                int slow = progresses.Count(p => p.CurrentSpeedFactor < UF_Progress.SlowAtSpeedFactor);
+                if (slow > 0)
+                    str.AppendTagged("UF_RunningCountSlow".Translate(slow));
+
+                int finished = progresses.Count(p => p.Finished);
+                if (finished > 0)
+                    str.AppendTagged("UF_RunningCountFinished".Translate(finished));
+
+                int ruined = progresses.Count(p => p.Ruined);
+                if (ruined > 0)
+                    str.AppendTagged("UF_RunningCountRuined".Translate(ruined));
+            }
+            else
+            {
+                if (progresses[0].Finished)
+                    str.AppendTagged("UF_Finished".Translate());
+                else if (progresses[0].Ruined)
+                    str.AppendTagged("UF_Ruined".Translate());
+                else if (progresses[0].CurrentSpeedFactor < UF_Progress.SlowAtSpeedFactor)
+                    str.AppendTagged("UF_RunningSlow".Translate(progresses[0].CurrentSpeedFactor.ToStringPercent(), progresses[0].ProgressPercentFlooredString.Value));
+                else
+                    str.AppendTagged("UF_RunningInfo".Translate(progresses[0].ProgressPercentFlooredString.Value));
+            }
+
+            str.AppendLine();
+
+            if (progresses.Any(p => p.Process.usesTemperature))
+            {
+                // Line 3. Show the ambient temperature, and if overheating/freezing
+                float ambientTemperature = parent.AmbientTemperature;
+                str.AppendFormat("{0}: {1}", "Temperature".TranslateSimple(), ambientTemperature.ToStringTemperature("F0"));
+
+                if (singleDef != null)
                 {
-                    stringBuilder.AppendLine("UF_Finished".Translate());
-                }
-                else if (parent.Map != null) // parent.Map is null when minified
-                {
-                    stringBuilder.AppendLine("UF_Progress".Translate(ProgressPercent.ToStringPercent(), TimeLeft()));
-                    if (CurrentSpeedFactor != 1f)
+                    if (singleDef.temperatureSafe.Includes(ambientTemperature))
                     {
-                        // Should be max. 59 chars in the English translation
-                        if (CurrentSpeedFactor < 1f)
-                        {
-                            stringBuilder.Append("UF_NonIdealInfluences".Translate(WhatsWrong())).Append(" ").AppendLine("UF_NonIdealSpeedFactor".Translate(CurrentSpeedFactor.ToStringPercent()));
-                        }
-                        else
-                        {
-                            stringBuilder.AppendLine("UF_NonIdealSpeedFactor".Translate(CurrentSpeedFactor.ToStringPercent()));
-                        }
+                        str.AppendFormat(" ({0})", singleDef.temperatureIdeal.Includes(ambientTemperature) ? "UF_Ideal".TranslateSimple() : "UF_Safe".TranslateSimple());
+                    }
+                    else if (!Empty)
+                    {
+                        bool overheating = ambientTemperature < singleDef.temperatureSafe.TrueMin; 
+                        str.AppendFormat(" ({0}{1})".Colorize(overheating ? ColoredText.RedReadable : Color.blue),
+                            overheating ? "Freezing".TranslateSimple() : "Overheating".TranslateSimple(),
+                            progresses.Count == 1 && progresses[0].Process.processType == ProcessType.Single ? $" {progresses[0].ruinedPercent.ToStringPercent()}" : "");
                     }
                 }
-            }
-
-            // 5th line: "Ideal/safe temperature range"
-            if (CurrentProcess.usesTemperature)
-            {
-                stringBuilder.AppendLine(string.Concat(new string[]
+                else if (progresses.Count > 0)
                 {
-                    "UF_IdealSafeProductionTemperature".Translate(),": ",
-                    CurrentProcess.temperatureIdeal.min.ToStringTemperature("F0"),"~",
-                    CurrentProcess.temperatureIdeal.max.ToStringTemperature("F0"), " (",
-                    CurrentProcess.temperatureSafe.min.ToStringTemperature("F0"), "~",
-                    CurrentProcess.temperatureSafe.max.ToStringTemperature("F0"), ")"
-                }));
+                    bool abort = false;
+                    foreach (UF_Progress progress in progresses)
+                    {
+                        if (ambientTemperature > progress.Process.temperatureSafe.TrueMax)
+                        {
+                            str.AppendFormat(" ({0})", "Freezing".TranslateSimple());
+                            abort = true;
+                            break;
+                        }
+
+                        if (ambientTemperature < progress.Process.temperatureSafe.TrueMin)
+                        {
+                            str.AppendFormat(" ({0})", "Overheating".TranslateSimple());
+                            abort = true;
+                            break;
+                        }
+                    }
+
+                    if (!abort)
+                    {
+                        foreach (UF_Progress progress in progresses)
+                        {
+                            if (progress.Process.temperatureIdeal.Includes(ambientTemperature))
+                            {
+                                str.AppendFormat(" ({0})", "UF_Safe".TranslateSimple());
+                                abort = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!abort)
+                    {
+                        str.AppendFormat(" ({0})", "UF_Idea".TranslateSimple());
+                    }
+                }
+
+                str.AppendLine();
+
+                // Line 4. Ideal temp range
+                if (singleDef != null && singleDef.usesTemperature)
+                {
+                    str.AppendFormat("{0}: {1}~{2} ({3}~{4})", "UF_IdealSafeProductionTemperature".TranslateSimple(),
+                        singleDef.temperatureIdeal.min.ToStringTemperature("F0"),
+                        singleDef.temperatureIdeal.max.ToStringTemperature("F0"),
+                        singleDef.temperatureSafe.min.ToStringTemperature("F0"),
+                        singleDef.temperatureSafe.max.ToStringTemperature("F0"));
+                }
             }
 
-            return stringBuilder.ToString().TrimEndNewlines();
+            return str.ToString().TrimEndNewlines();
+        }
+
+        private float CalcRoofCoverage()
+        {
+            if (parent.Map == null) return 0f;
+
+            int allTiles = 0;
+            int roofedTiles = 0;
+            foreach (IntVec3 current in parent.OccupiedRect())
+            {
+                allTiles++;
+                if (parent.Map.roofGrid.Roofed(current))
+                    roofedTiles++;
+            }
+
+            return roofedTiles / (float) allTiles;
         }
 
         public override void CompTick()
         {
-            base.CompTick();
             DoTicks(1);
         }
+
         public override void CompTickRare()
         {
-            base.CompTickRare();
-            DoTicks(250);
+            DoTicks(GenTicks.TickRareInterval);
         }
 
-        //----------------------------------------------------------------------------------------------------
-        // Functional Methods
+        public override void CompTickLong()
+        {
+            DoTicks(GenTicks.TickLongInterval);
+        }
+
+        public Tuple<string, string> GetIngredientProductLabels(Thing thing)
+        {
+            return ingredientProductLabels.Value.TryGetValue(thing, out Tuple<string, string> labels) ? labels : Tuple.Create("Unknown", "Unknown");
+        }
 
         public void DoTicks(int ticks)
         {
-            if (!Empty && Fueled && Powered && FlickedOn)
+            tickCounter += ticks;
+
+            if (backwardsCompatibilityData is not null)
+                ApplyBackwardsCompatibility();
+
+            if (!Fueled || !Powered || !FlickedOn)
+                return;
+
+            foreach (UF_Progress progress in progresses)
+                progress.DoTicks(ticks);
+
+            if (refuelComp?.Props.consumeFuelOnlyWhenUsed == true && !Empty)
+                refuelComp.ConsumeFuel((refuelComp.Props.fuelConsumptionRate / GenDate.TicksPerDay) * ticks);
+
+            if (tickCounter >= GenTicks.TickRareInterval)
             {
-                ProgressTicks += Mathf.RoundToInt(ticks * CurrentSpeedFactor);
-            }
-            if (!Ruined)
-            {
-                if (!Empty)
+                while(tickCounter >= GenTicks.TickRareInterval)
+                    tickCounter -= GenTicks.TickRareInterval;
+
+                CachesInvalid(true);
+
+                foreach(UF_Progress progress in progresses)
                 {
-                    // 2500 ticks per hour, 100 percent = divide by 250000
-                    float ambientTemperature = parent.AmbientTemperature;
-                    if (ambientTemperature > CurrentProcess.temperatureSafe.max)
-                    {
-                        ruinedPercent += (ambientTemperature - CurrentProcess.temperatureSafe.max) * (CurrentProcess.ruinedPerDegreePerHour / 250000f) * (float)ticks;
-                    }
-                    else if (ambientTemperature < CurrentProcess.temperatureSafe.min)
-                    {
-                        ruinedPercent -= (ambientTemperature - CurrentProcess.temperatureSafe.min) * (CurrentProcess.ruinedPerDegreePerHour / 250000f) * (float)ticks;
-                    }
-                }
-                if (ruinedPercent >= 1f)
-                {
-                    ruinedPercent = 1f;
-                    parent.BroadcastCompSignal("RuinedByTemperature");
-                    Reset();
-                }
-                else if (ruinedPercent < 0f)
-                {
-                    ruinedPercent = 0f;
+                    progress.TickRare();
                 }
             }
+        }
+
+        public UF_Process? GetProcess(ThingDef ingredient)
+        {
+            foreach (UF_Process? process in EnabledProcesses)
+            {
+                if (process.ingredientFilter.Allows(ingredient))
+                    return process;
+            }
+
+            return null;
         }
 
         public void AddIngredient(Thing ingredient)
         {
-            if (!ingredientLabels.Contains(ingredient.def.label))
+            try
             {
-                ingredientLabels.Add(ingredient.def.label);
+                UF_Process? process = GetProcess(ingredient.def);
+                if (process == null)
+                    throw new UFException($"Tried to add {ingredient} to {Label}, but no process accepts that as an ingredient.");
+
+                if (ingredient.stackCount > SpaceLeft)
+                    throw new UFException($"Tried to add {ingredient} ×{ingredient.stackCount} to {Label}, but fermenter only accepts {SpaceLeft} more ingredients.");
+
+                UF_Progress? existingProgress = progresses.Find(p => p.Process == process);
+                bool wasEmpty = Empty;
+
+                if (existingProgress == null)
+                    TryAddIngredientNewProgress(ingredient, process);
+                else
+                    TryAddIngredientExistingProcess(ingredient, process, existingProgress);
+
+                if (wasEmpty && !Empty)
+                    GraphicChange(false);
+
+                CachesInvalid();
             }
-            CompIngredients compIngredients = ingredient.TryGetComp<CompIngredients>();
-            if (compIngredients != null)
+            catch (UFException ex)
             {
-                inputIngredients.AddRange(compIngredients.ingredients);
-            }
-            int num = Mathf.Min(ingredient.stackCount, CurrentProcess.maxCapacity - ingredientCount);
-            if (num > 0)
-            {
-                AddIngredient(ingredient.stackCount);
-                ingredient.Destroy(DestroyMode.Vanish);
+                Log.Warning(ex.Message);
+                ingredient.Destroy();
             }
         }
 
-        public void AddIngredient(int count)
+        public void CachesInvalid(bool rareTick = false)
         {
-            ruinedPercent = 0f;
-            if (Finished)
+            if (rareTick)
             {
-                Log.Warning("Universal Fermenter:: Tried to add ingredient to a fermenter full of product. Colonists should take the product first.");
-                return;
+                // Check periodically
+                RoofCoverage.Invalidate();
             }
-            int num = Mathf.Min(count, CurrentProcess.maxCapacity - ingredientCount);
-            if (num <= 0)
+            else
             {
-                return;
+                // Only update when contents have changed
+                spaceLeftFor.Invalidate();
+                ingredientProductLabels.Invalidate();
+                IngredientCount.Invalidate();
+                SpaceLeft.Invalidate();
             }
-            ProgressTicks = Mathf.RoundToInt(GenMath.WeightedAverage(0f, num, ProgressTicks, ingredientCount));
-            if (Empty)
-            {
-                GraphicChange(false);
-            }
-            ingredientCount += num;
+
+            compInspectStringExtra.Invalidate();
         }
 
-        public Thing TakeOutProduct()
+        private void TryAddIngredientNewProgress(Thing ingredient, UF_Process process)
         {
-            if (!Finished && !CurrentProcess.usesQuality)
+            if (progresses.Count > 0 && progresses[0].Process.processType == ProcessType.Single)
+                throw new UFException($"Tried to add non-compatible ingredient {ingredient} to single-process of {Label} which creates {progresses[0].Process.thingDef}.");
+
+            if (progresses.Count > 0 && process.processType != ProcessType.MultipleMixed && progresses.Any(p => p.Process.processType != ProcessType.MultipleMixed))
+                throw new UFException($"Tried to add ingredient {ingredient} to {Label} for new process making {process}, but there are already running processes without process type MultipleMixed.");
+
+            if (progresses.Count > 0 && process.processType == ProcessType.Multiple && progresses.Any(p => p.Process != process))
+                throw new UFException($"Tried to add ingredient {ingredient} to {Label} for new process making {process}, but there are existing processes that do not make {process}.");
+
+            AddIngredientNewProgress(ingredient, process);
+        }
+
+        private void TryAddIngredientExistingProcess(Thing ingredient, UF_Process process, UF_Progress existingProgress)
+        {
+            if (existingProgress.Process != process || process.ingredientFilter.Allows(ingredient) == false)
+                throw new UFException($"Tried to add ingredient {ingredient} to {Label} for existing process creating {existingProgress.Process} - invalid configuration.");
+
+            if (process.processType == ProcessType.Single && existingProgress.Finished)
+                throw new UFException($"Tried to add ingredient {ingredient} to {Label} to Single process creating {existingProgress.Process}, but existing progress is already finished.");
+
+            if (process.processType == ProcessType.Single && existingProgress.IngredientCount == process.maxCapacity)
+                throw new UFException($"Tried to add ingredient {ingredient} to {Label} to single process creating {existingProgress.Process}, but existing progress is already full.");
+
+            if (process.processType == ProcessType.Single)
+                AddIngredientExistingProcess(ingredient, existingProgress);
+            else
+                AddIngredientNewProgress(ingredient, process);
+        }
+
+        private void AddIngredientNewProgress(Thing ingredient, UF_Process process)
+        {
+            AcceptIngredientThing(ingredient);
+            progresses.Add(new UF_Progress(this)
             {
-                Log.Warning("Universal Fermenter: Tried to get product but it's not yet fermented.");
-                return null;
-            }
-            else if (CurrentProcess.usesQuality && CurrentQuality < TargetQuality)
+                ProcessIndex = Processes.IndexOf(process),
+                TargetQuality = targetQuality,
+                storedThings = new List<Thing> { ingredient }
+            });
+        }
+
+        private void AddIngredientExistingProcess(Thing ingredient, UF_Progress progress)
+        {
+            AcceptIngredientThing(ingredient);
+            progress.AddThing(ingredient);
+            progress.progressTicks = Mathf.RoundToInt(GenMath.WeightedAverage(0f, ingredient.stackCount, progress.progressTicks, progress.IngredientCount));
+        }
+
+        private void AcceptIngredientThing(Thing? ingredient)
+        {
+            if (ingredient == null)
+                throw new UFException($"Tried to add null ingredient to innerContainer of {Label}.");
+
+            bool added = ingredient.holdingOwner?.TryTransferToContainer(ingredient, innerContainer, false)
+                         ?? innerContainer.TryAdd(ingredient, false);
+
+            if (!added)
+                throw new UFException($"Tried to add ingredient {ingredient} to innerContainer of {Label} but it did not accept the item.");
+        }
+
+        private Tuple<string, string> GetIngredientProductLabel(Thing? ingredient)
+        {
+            // Perf: Only calculate these strings once
+            if (ingredient is null)
+                return Tuple.Create("Unknown", "Unknown");
+
+            UF_Progress? progress = progresses.Find(p => p.storedThings.Contains(ingredient));
+
+            if (progress is null)
+                return Tuple.Create("Unknown", "Unknown");
+
+            return Tuple.Create(
+                ingredient.LabelCap,
+                GenLabel.ThingLabel(progress.Process.thingDef, null, Mathf.RoundToInt(ingredient.stackCount * progress.Process.efficiency)).CapitalizeFirst());
+        }
+
+        public Thing? TakeOutProduct(UF_Progress progress)
+        {
+            try
             {
-                Log.Warning("Universal Fermenter: Tried to get product but it has not reached target quality.");
-                return null;
-            }
-            Thing thing = ThingMaker.MakeThing(CurrentProcess.thingDef, null);
-            CompIngredients compIngredients = thing.TryGetComp<CompIngredients>();
-            if (compIngredients != null && !inputIngredients.NullOrEmpty())
-            {
-                compIngredients.ingredients.AddRange(inputIngredients);
-            }
-            if (CurrentProcess.usesQuality)
-            {
-                CompQuality compQuality = thing.TryGetComp<CompQuality>();
-                if (compQuality != null)
+                if (!progresses.Contains(progress) || progress.ProcessIndex > Processes.Count - 1)
+                    throw new UFException("Cannot take product from this fermenter - progress is invalid.");
+
+                UF_Process process = progress.Process;
+
+                if (!progress.Finished && !process.usesQuality && !progress.Ruined)
+                    throw new UFException($"Tried to get product {process} from {Label}, but it is not done fermenting yet ({progress.ProgressPercent.ToStringPercent()}).");
+
+                if (process.usesQuality && !progress.Ruined && progress.CurrentQuality < progress.TargetQuality)
+                    throw new UFException($"Tried to get product {process} from {Label}, but it has not reached the target quality yet (is {progress.CurrentQuality}, wants {progress.TargetQuality}");
+
+                Thing? thing = null;
+                if (!progress.Ruined)
                 {
-                    compQuality.SetQuality(CurrentQuality, ArtGenerationContext.Colony);
+                    thing = ThingMaker.MakeThing(process.thingDef);
+
+                    CompIngredients compIngredients = thing.TryGetComp<CompIngredients>();
+                    if (compIngredients != null && !progress.Ingredients.Any())
+                        compIngredients.ingredients.AddRange(progress.Ingredients);
+
+                    if (process.usesQuality)
+                    {
+                        CompQuality compQuality = thing.TryGetComp<CompQuality>();
+                        compQuality?.SetQuality(progress.CurrentQuality, ArtGenerationContext.Colony);
+                    }
+
+                    thing.stackCount = Mathf.RoundToInt(progress.IngredientCount * process.efficiency);
+
+                    if (thing.stackCount == 0)
+                        throw new UFException($"Tried to get product {process} from {Label}, but stack count ended up as 0.");
                 }
+
+                foreach (var ingredient in progress.storedThings)
+                {
+                    innerContainer.Remove(ingredient);
+                    ingredient.Destroy();
+                }
+
+                progresses.Remove(progress);
+
+                if (Empty)
+                    GraphicChange(true);
+
+                CachesInvalid();
+
+                return thing;
             }
-            thing.stackCount = Mathf.RoundToInt(ingredientCount * CurrentProcess.efficiency);
-            Reset();
-            return thing;
+            catch (UFException ex)
+            {
+                Log.Warning(ex.Message);
+                return null;
+            }
+        }
+
+        public int SpaceLeftFor(ThingDef def)
+        {
+            return spaceLeftFor.Get(def);
+        }
+
+        public int SpaceLeftFor(Thing thing)
+        {
+            int spaceLeft = SpaceLeftFor(thing.def);
+            return spaceLeft == 0 || CombinedIngredientFilter.Value.Allows(thing) == false ? 0 : spaceLeft;
+        }
+
+        private int SpaceLeftForInternal(ThingDef def)
+        {
+            UF_Process? process = GetProcess(def);
+            if (SpaceLeft == 0 || process == null || CombinedIngredientFilter.Value.Allows(def) == false)
+                return 0;
+
+            if (progresses.Count > 0 && (progresses[0].Process.processType != ProcessType.MultipleMixed || process.processType != ProcessType.MultipleMixed) && process != progresses[0].Process)
+                return 0; // Has Single or Multiple of different type, no space for this
+            
+            return Mathf.Max(0, process.maxCapacity - IngredientCount);
         }
 
         public void Reset()
         {
-            ingredientCount = 0;	
-            ProgressTicks = 0;
-            inputIngredients.Clear();
-            ingredientLabels.Clear();
+            progresses.Clear();
+
+            // Drop all droppable ingredients
+            foreach (UF_Process? process in Processes)
+            {
+                if (!process.incompleteProductsCanBeRetrieved)
+                    continue;
+                foreach (ThingDef? ingredient in process.ingredientFilter.AllowedThingDefs)
+                foreach (Thing? thing in innerContainer.InnerListForReading.ToList())
+                {
+                    if (thing.def != ingredient)
+                        continue;
+                    innerContainer.TryDrop(thing, parent.Position, parent.Map, ThingPlaceMode.Near, thing.stackCount, out _);
+                }
+            }
+
+            innerContainer.ClearAndDestroyContents();
+
             GraphicChange(true);
-            CurrentProcess = Props.processes[queuedProcessIndex];
+            CachesInvalid();
         }
 
         public void GraphicChange(bool toEmpty)
         {
-            string suffix = CurrentProcess.graphicSuffix;
-            if (suffix != null)
-            {
-                string texPath = parent.def.graphicData.texPath;
-                if (!toEmpty)
-                {
-                    texPath += CurrentProcess.graphicSuffix;
-                }
-                TexReloader.Reload(parent, texPath);
-            }
+            if (Processes.All(p => p.graphicSuffix == null))
+                return;
+
+            string? texPath = parent.def.graphicData.texPath;
+            string? suffix = progresses.FirstOrDefault()?.Process.graphicSuffix;
+
+            if (!toEmpty && suffix != null)
+                texPath += suffix;
+
+            parent.ReloadGraphic(texPath);
         }
 
-        public string TimeLeft()
+        public UF_Progress? GetProgress(Thing thing)
         {
-            if (EstimatedTicksLeft >= 0)
+            foreach (var progress in progresses)
             {
-                return EstimatedTicksLeft.ToStringTicksToPeriod() + " left";
+                foreach (var progressThing in progress.storedThings)
+                {
+                    if (progressThing == thing)
+                        return progress;
+                }
             }
-            else
-            {
-                return "stopped";
-            }
+
+            return null;
         }
 
-        public string WhatsWrong()
+#pragma warning disable 618
+        public override void PostExposeData()
         {
-            if (CurrentSpeedFactor < 1f)
+            try
             {
-                List<string> wrong = new List<string>();
-                if (CurrentTemperatureFactor < 1f)
-                {
-                    wrong.Add("UF_WeatherTemperature".Translate());
-                }
-                if (CurrentSunFactor < 1f)
-                {
-                    wrong.Add("UF_WeatherSunshine".Translate());
-                }
-                if (CurrentRainFactor < 1f)
-                {
-                    wrong.Add("UF_WeatherRain".Translate());
-                }
-                if (CurrentSnowFactor < 1f)
-                {
-                    wrong.Add("UF_WeatherSnow".Translate());
-                }
-                if (CurrentWindFactor < 1f)
-                {
-                    wrong.Add("UF_WeatherWind".Translate());
-                }
-                return string.Join(", ", wrong.ToArray());
+                Scribe_Values.Look(ref targetQuality, "targetQuality", QualityCategory.Normal);
+
+                Scribe_Deep.Look(ref innerContainer, "UF_innerContainer", this);
+                Scribe_Collections.Look(ref progresses, "UF_progresses", LookMode.Deep, this);
+                Scribe_Deep.Look(ref ProductFilter, "UF_productFilter");
+                Scribe_Deep.Look(ref IngredientFilter, "UF_ingredientFilter");
+
+                BackwardsCompatibilityUpdate();
+
+                ProductFilterChanged();
             }
-            else
+            catch (UFException ex)
             {
-                return "nothing";
+                Log.Warning(ex.Message);
             }
         }
 
-        public string StatusInfo()
+        class BackwardsCompatibilityData
         {
-            if (Ruined)
-            {
-                return "RuinedByTemperature".Translate();
-            }
+            public float ruinedPercent;
+            public int ingredientCount;
+            public int progressTicks;
+            public int currentProcessIndex;
+            public int queuedProcessIndex;
+        }
 
-            float ambientTemperature = parent.AmbientTemperature;
-            string str = null;
-            string tempStr = "Temperature".Translate() + ": " + ambientTemperature.ToStringTemperature("F0");
+        private void BackwardsCompatibilityUpdate()
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+            if (progresses != null)
+                return;
 
-            if (!Empty)
-            {
-                if (CurrentProcess.temperatureSafe.Includes(ambientTemperature))
-                {
-                    if (CurrentProcess.temperatureIdeal.Includes(ambientTemperature))
-                    {
-                        str = "UF_Ideal".Translate();
-                    }
-                    else
-                    {
-                        str = "UF_Safe".Translate();
-                    }
-                }
-                else
-                {
-                    if (ruinedPercent > 0f)
-                    {
-                        if (ambientTemperature < CurrentProcess.temperatureSafe.min)
-                        {
-                            str = "Freezing".Translate();
-                        }
-                        else
-                        {
-                            str = "Overheating".Translate();
-                        }
-                        str = str + " " + ruinedPercent.ToStringPercent();
-                    }
-                }
-            }
+            BackwardsCompatibilityData data = new BackwardsCompatibilityData();
 
-            if (str == null)
+            Scribe_Values.Look(ref data.ruinedPercent, "ruinedPercent");
+            Scribe_Values.Look(ref data.ingredientCount, "UF_UniversalFermenter_IngredientCount");
+            Scribe_Values.Look(ref data.progressTicks, "UF_progressTicks");
+            Scribe_Values.Look(ref data.currentProcessIndex, "UF_currentResourceInd");
+            Scribe_Values.Look(ref data.queuedProcessIndex, "UF_queuedProcessIndex");
+
+            backwardsCompatibilityData = data;
+
+            progresses = new List<UF_Progress>();
+            innerContainer = new ThingOwner<Thing>(this);
+            ProductFilter = new ThingFilter(ProductFilterChanged);
+            ProductFilter.CopyAllowancesFrom(Props.defaultFilter);
+
+            IngredientFilter = new ThingFilter(IngredientFilterChanged);
+            foreach (ThingDef def in Props.processes.SelectMany(x => x.ingredientFilter.AllowedThingDefs))
             {
-                return tempStr;
-            }
-            else
-            {
-                return tempStr + " (" + str + ")";
+                IngredientFilter.SetAllow(def, true);
             }
         }
+
+        private void ApplyBackwardsCompatibility()
+        {
+            if (backwardsCompatibilityData == null)
+                return;
+
+            try
+            {
+                BackwardsCompatibilityData data = backwardsCompatibilityData;
+
+                if (progresses.Count > 0 || data.ingredientCount == 0)
+                    return;
+
+                UF_Process? process = Processes[data.currentProcessIndex];
+                if (process == null)
+                    throw new UFException($"Tried to upgrade fermenter {Label} but the current process index was invalid.");
+
+                Thing? ingredients = ThingMaker.MakeThing(process.ingredientFilter.AllowedThingDefs.FirstOrDefault());
+
+                if (ingredients == null)
+                    throw new UFException($"Tried to upgrade fermenter {Label} creating {process}, but could not find any ingredients.");
+
+                ingredients.stackCount = data.ingredientCount;
+
+                AcceptIngredientThing(ingredients);
+
+                progresses.Add(new UF_Progress(this)
+                {
+                    ruinedPercent = data.ruinedPercent,
+                    ProcessIndex = data.currentProcessIndex,
+                    TargetQuality = targetQuality,
+                    storedThings = { ingredients },
+                    ProgressTicks = data.progressTicks
+                });
+
+                GraphicChange(false);
+            }
+            catch (UFException ex)
+            {
+                Log.Warning(ex.Message);
+            }
+            finally
+            {
+                backwardsCompatibilityData = null;
+            }
+
+        }
+#pragma warning restore 618
     }
 }

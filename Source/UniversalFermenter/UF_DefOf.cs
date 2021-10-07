@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Text;
-using System.Linq;
-using UnityEngine;
-using RimWorld;
+﻿using RimWorld;
 using Verse;
 
 namespace UniversalFermenter
@@ -10,14 +6,12 @@ namespace UniversalFermenter
     [DefOf]
     public static class UF_DefOf
     {
-        static UF_DefOf()
-        {
-        }
-        public static JobDef FillUniversalFermenter;
-        public static JobDef TakeProductOutOfUniversalFermenter;
+        public static JobDef FillUniversalFermenter = null!;
 
-        public static SoundDef UF_Honk;
+        public static JobDef TakeProductOutOfUniversalFermenter = null!;
 
-        public static ThingDef UniversalFermenter;
+        public static SoundDef UF_Honk = null!;
+
+        public static ThingDef UniversalFermenter = null!;
     }
 }

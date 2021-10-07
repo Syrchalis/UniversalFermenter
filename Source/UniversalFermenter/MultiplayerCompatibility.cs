@@ -5,7 +5,7 @@ using Verse;
 namespace UniversalFermenter
 {
     [StaticConstructorOnStartup]
-    static class MultiplayerCompatibility
+    internal static class MultiplayerCompatibility
     {
         static MultiplayerCompatibility()
         {
@@ -13,18 +13,18 @@ namespace UniversalFermenter
 
             // Sync all gizmo clicks
 
-            MP.RegisterSyncMethod(typeof(Command_Process), nameof(Command_Process.ChangeProcess)).SetContext(SyncContext.MapSelected);
             MP.RegisterSyncMethod(typeof(Command_Quality), nameof(Command_Quality.ChangeQuality)).SetContext(SyncContext.MapSelected);
 
-            var methods = new[] {
+            string[] methods =
+            {
                 nameof(UF_Utility.FinishProcess),
                 nameof(UF_Utility.ProgressOneDay),
                 nameof(UF_Utility.ProgressHalfQuadrum),
                 nameof(UF_Utility.EmptyObject),
-                nameof(UF_Utility.FillObject),
-                nameof(UF_Utility.LogSpeedFactors),
+                nameof(UF_Utility.LogSpeedFactors)
             };
-            foreach (string methodName in methods) {
+            foreach (string methodName in methods)
+            {
                 MP.RegisterSyncMethod(typeof(UF_Utility), methodName);
             }
 
@@ -32,16 +32,18 @@ namespace UniversalFermenter
         }
 
         // This is only called whenever user changes process, which is seldom.
-        static void UF_Process_SyncWorker(SyncWorker sync, ref UF_Process obj)
+        private static void UF_Process_SyncWorker(SyncWorker sync, ref UF_Process obj)
         {
-            if (sync.isWriting) {
+            if (sync.isWriting)
+            {
                 sync.Write(obj.uniqueID);
-            } else {
+            }
+            else
+            {
                 int id = sync.Read<int>();
 
                 obj = UF_Utility.allUFProcesses.First(p => p.uniqueID == id);
             }
         }
-
     }
 }
